@@ -4,12 +4,12 @@ Good Old Configuration File
 {: .subtitle } 
 
 The file provider lets you define the [dynamic configuration](./overview.md) in a TOML or YAML file.
-You can write these configuration elements:
+You can write one of these mutually exclusive configuration elements:
 
 * In [a dedicated file](#filename)
 * In [several dedicated files](#directory)
 
-!!! note
+!!! info
     The file provider is the default format used throughout the documentation to show samples of the configuration for many features. 
 
 !!! tip
@@ -23,17 +23,17 @@ You can write these configuration elements:
     
     ```toml tab="File (TOML)"
     [providers.file]
-      filename = "/my/path/to/dynamic-conf.toml"
+      directory = "/path/to/dynamic/conf"
     ```
     
     ```yaml tab="File (YAML)"
     providers:
       file:
-        filename: "/my/path/to/dynamic-conf.yml"
+        directory: "/path/to/dynamic/conf"
     ```
     
     ```bash tab="CLI"
-    --providers.file.filename=/my/path/to/dynamic_conf.toml
+    --providers.file.directory=/path/to/dynamic/conf
     ```
     
     Declaring Routers, Middlewares & Services:
@@ -96,14 +96,27 @@ You can write these configuration elements:
             passHostHeader: false
     ```
 
-## Provider Configuration Options
+## Provider Configuration
 
-!!! tip "Browse the Reference"
-    If you're in a hurry, maybe you'd rather go through the [static](../reference/static-configuration/overview.md) and the [dynamic](../reference/dynamic-configuration/file.md) configuration references.
+If you're in a hurry, maybe you'd rather go through the [dynamic configuration](../reference/dynamic-configuration/file.md) references and the [static configuration](../reference/static-configuration/overview.md).
+
+!!! warning "Limitations"
+
+    With the file provider, Traefik listens for file system notifications to update the dynamic configuration.
+    
+    If you use a mounted/bound file system in your orchestrator (like docker or kubernetes), the way the files are linked may be a source of errors.
+    If the link between the file systems is broken, when a source file/directory is changed/renamed, nothing will be reported to the linked file/directory, so the file system notifications will be neither triggered nor caught. 
+    
+    For example, in docker, if the host file is renamed, the link to the mounted file will be broken and the container's file will not be updated.
+    To avoid this kind of issue, a good practice is to:
+        
+    * set the Traefik [**directory**](#directory) configuration with the parent directory
+    * mount/bind the parent directory
+
+    As it is very difficult to listen to all file system notifications, Traefik use [fsnotify](https://github.com/fsnotify/fsnotify).
+    If using a directory with a mounted directory does not fix your issue, please check your file system compatibility with fsnotify.
     
 ### `filename`
-
-_Optional_
 
 Defines the path of the configuration file.
 
@@ -125,8 +138,6 @@ providers:
 
 ### `directory`
 
-_Optional_
-
 Defines the directory that contains the configuration files.
 
 ```toml tab="File (TOML)"
@@ -147,35 +158,33 @@ providers:
 
 ### `watch`
 
-_Optional_
-
 Set the `watch` option to `true` to allow Traefik to automatically watch for file changes.  
 It works with both the `filename` and the `directory` options.
 
 ```toml tab="File (TOML)"
 [providers]
   [providers.file]
-    filename = "dynamic_conf.toml"
+    directory = "/path/to/dynamic/conf"
     watch = true
 ```
 
 ```yaml tab="File (YAML)"
 providers:
   file:
-    filename: dynamic_conf.yml
+    directory: /path/to/dynamic/conf
     watch: true
 ```
 
 ```bash tab="CLI"
---providers.file.filename=dynamic_conf.toml
+--providers.file.directory=/my/path/to/dynamic/conf
 --providers.file.watch=true
 ```
 
 ### Go Templating
 
 !!! warning
-    Go Templating only works along with dedicated configuration files.
-    Templating does not work in the Traefik main configuration file.
+    Go Templating only works along with dedicated dynamic configuration files.
+    Templating does not work in the Traefik main static configuration file.
 
 Traefik allows using Go templating.  
 Thus, it's possible to define easily lot of routers, services and TLS certificates as described in the file `template-rules.toml` :

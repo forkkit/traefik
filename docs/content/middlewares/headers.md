@@ -15,8 +15,8 @@ Add the `X-Script-Name` header to the proxied request and the `X-Custom-Response
 
 ```yaml tab="Docker"
 labels:
-- "traefik.http.middlewares.testHeader.headers.customrequestheaders.X-Script-Name=test"
-- "traefik.http.middlewares.testHeader.headers.customresponseheaders.X-Custom-Response-Header=value"
+  - "traefik.http.middlewares.testHeader.headers.customrequestheaders.X-Script-Name=test"
+  - "traefik.http.middlewares.testHeader.headers.customresponseheaders.X-Custom-Response-Header=value"
 ```
 
 ```yaml tab="Kubernetes"
@@ -32,6 +32,11 @@ spec:
       X-Custom-Response-Header: "value"
 ```
 
+```yaml tab="Consul Catalog"
+- "traefik.http.middlewares.testheader.headers.customrequestheaders.X-Script-Name=test"
+- "traefik.http.middlewares.testheader.headers.customresponseheaders.X-Custom-Response-Header=value"
+```
+
 ```json tab="Marathon"
 "labels": {
   "traefik.http.middlewares.testheader.headers.customrequestheaders.X-Script-Name": "test",
@@ -41,8 +46,8 @@ spec:
 
 ```yaml tab="Rancher"
 labels:
-- "traefik.http.middlewares.testheader.headers.customrequestheaders.X-Script-Name=test"
-- "traefik.http.middlewares.testheader.headers.customresponseheaders.X-Custom-Response-Header=value"
+  - "traefik.http.middlewares.testheader.headers.customrequestheaders.X-Script-Name=test"
+  - "traefik.http.middlewares.testheader.headers.customresponseheaders.X-Custom-Response-Header=value"
 ```
 
 ```toml tab="File (TOML)"
@@ -89,6 +94,10 @@ spec:
       X-Custom-Request-Header: "" # Removes
     customResponseHeaders:
       X-Custom-Response-Header: "" # Removes
+```
+
+```yaml tab="Consul Catalog"
+- "traefik.http.middlewares.testheader.headers.customrequestheaders.X-Script-Name=test"
 ```
 
 ```json tab="Marathon"
@@ -146,6 +155,11 @@ spec:
     sslRedirect: "true"
 ```
 
+```yaml tab="Consul Catalog"
+- "traefik.http.middlewares.testheader.headers.framedeny=true"
+- "traefik.http.middlewares.testheader.headers.sslredirect=true"
+```
+
 ```json tab="Marathon"
 "labels": {
   "traefik.http.middlewares.testheader.headers.framedeny": "true",
@@ -162,8 +176,8 @@ labels:
 ```toml tab="File (TOML)"    
 [http.middlewares]
   [http.middlewares.testHeader.headers]
-    FrameDeny = true
-    SSLRedirect = true
+    frameDeny = true
+    sslRedirect = true
 ```
 
 ```yaml tab="File (YAML)"  
@@ -171,8 +185,8 @@ http:
   middlewares:
     testHeader:
       headers:
-        FrameDeny: true
-        SSLRedirect: true
+        frameDeny: true
+        sslRedirect: true
 ```
 
 ### CORS Headers
@@ -202,6 +216,13 @@ spec:
     accessControlAllowOrigin: "origin-list-or-null"
     accessControlMaxAge: 100
     addVaryHeader: "true"
+```
+
+```yaml tab="Consul Catalog"
+- "traefik.http.middlewares.testheader.headers.accesscontrolallowmethods=GET,OPTIONS,PUT"
+- "traefik.http.middlewares.testheader.headers.accesscontrolalloworigin=origin-list-or-null"
+- "traefik.http.middlewares.testheader.headers.accesscontrolmaxage=100"
+- "traefik.http.middlewares.testheader.headers.addvaryheader=true"
 ```
 
 ```json tab="Marathon"
@@ -235,10 +256,10 @@ http:
   middlewares:
     testHeader:
       headers:
-        accessControlAllowMethod:
-        - GET
-        - OPTIONS
-        - PUT
+        accessControlAllowMethods:
+          - GET
+          - OPTIONS
+          - PUT
         accessControlAllowOrigin: "origin-list-or-null"
         accessControlMaxAge: 100
         addVaryHeader: true
@@ -251,7 +272,7 @@ http:
 !!! warning
     If the custom header name is the same as one header name of the request or response, it will be replaced.
 
-!!! note
+!!! note ""
     The detailed documentation for the security headers can be found in [unrolled/secure](https://github.com/unrolled/secure#available-options).
 
 ### `customRequestHeaders`
@@ -331,7 +352,7 @@ If set to 0, would NOT include the header.
 
 ### `stsIncludeSubdomains` 
 
-The `stsIncludeSubdomains` is set to true, the `includeSubdomains` will be appended to the Strict-Transport-Security header.
+The `stsIncludeSubdomains` is set to true, the `includeSubDomains` directive will be appended to the Strict-Transport-Security header.
 
 ### `stsPreload` 
 

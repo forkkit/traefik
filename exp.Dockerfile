@@ -1,5 +1,5 @@
 # WEBUI
-FROM node:8.15.0 as webui
+FROM node:12.11 as webui
 
 ENV WEBUI_DIR /src/webui
 RUN mkdir -p $WEBUI_DIR
@@ -7,8 +7,8 @@ RUN mkdir -p $WEBUI_DIR
 COPY ./webui/ $WEBUI_DIR/
 
 WORKDIR $WEBUI_DIR
-RUN yarn install
 
+RUN npm install
 RUN npm run build
 
 # BUILD
@@ -38,10 +38,12 @@ COPY --from=webui /src/static/ /go/src/github.com/containous/traefik/static/
 RUN ./script/make.sh generate binary
 
 ## IMAGE
-FROM scratch
+FROM alpine:3.10
 
-COPY --from=gobuild /usr/share/zoneinfo /usr/share/zoneinfo
-COPY --from=gobuild /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+RUN apk --no-cache --no-progress add bash curl ca-certificates tzdata \
+    && update-ca-certificates \
+    && rm -rf /var/cache/apk/*
+
 COPY --from=gobuild /go/src/github.com/containous/traefik/dist/traefik /
 
 EXPOSE 80

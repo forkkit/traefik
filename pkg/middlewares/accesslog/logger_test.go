@@ -192,6 +192,7 @@ func TestLoggerJSON(t *testing.T) {
 				Format:   JSONFormat,
 			},
 			expected: map[string]func(t *testing.T, value interface{}){
+				RequestContentSize:        assertFloat64(0),
 				RequestHost:               assertString(testHostname),
 				RequestAddr:               assertString(testHostname),
 				RequestMethod:             assertString(testMethod),
@@ -527,7 +528,6 @@ func TestNewLogHandlerOutputStdout(t *testing.T) {
 	for _, test := range testCases {
 		test := test
 		t.Run(test.desc, func(t *testing.T) {
-
 			// NOTE: It is not possible to run these cases in parallel because we capture Stdout
 
 			file, restoreStdout := captureStdout(t)
@@ -543,7 +543,6 @@ func TestNewLogHandlerOutputStdout(t *testing.T) {
 }
 
 func assertValidLogData(t *testing.T, expected string, logData []byte) {
-
 	if len(expected) == 0 {
 		assert.Zero(t, len(logData))
 		t.Log(string(logData))

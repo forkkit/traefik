@@ -117,8 +117,14 @@ http:
       circuitBreaker:
         expression: foobar
     Middleware05:
-      compress: {}
+      compress:
+        excludedContentTypes:
+        - foobar
+        - foobar
     Middleware06:
+      contentType:
+        autoDetect: true
+    Middleware07:
       digestAuth:
         users:
         - foobar
@@ -127,14 +133,14 @@ http:
         removeHeader: true
         realm: foobar
         headerField: foobar
-    Middleware07:
+    Middleware08:
       errors:
         status:
         - foobar
         - foobar
         service: foobar
         query: foobar
-    Middleware08:
+    Middleware09:
       forwardAuth:
         address: foobar
         tls:
@@ -147,7 +153,7 @@ http:
         authResponseHeaders:
         - foobar
         - foobar
-    Middleware09:
+    Middleware10:
       headers:
         customRequestHeaders:
           name0: foobar
@@ -195,7 +201,7 @@ http:
         referrerPolicy: foobar
         featurePolicy: foobar
         isDevelopment: true
-    Middleware10:
+    Middleware11:
       ipWhiteList:
         sourceRange:
         - foobar
@@ -205,7 +211,7 @@ http:
           excludedIPs:
           - foobar
           - foobar
-    Middleware11:
+    Middleware12:
       inFlightReq:
         amount: 42
         sourceCriterion:
@@ -216,7 +222,7 @@ http:
             - foobar
           requestHeaderName: foobar
           requestHost: true
-    Middleware12:
+    Middleware13:
       passTLSClientCert:
         pem: true
         info:
@@ -239,9 +245,11 @@ http:
             commonName: true
             serialNumber: true
             domainComponent: true
-    Middleware13:
+          serialNumber: true
+    Middleware14:
       rateLimit:
         average: 42
+        period: 42
         burst: 42
         sourceCriterion:
           ipstrategy:
@@ -251,32 +259,33 @@ http:
             - foobar
           requestHeaderName: foobar
           requestHost: true
-    Middleware14:
+    Middleware15:
       redirectRegex:
         regex: foobar
         replacement: foobar
         permanent: true
-    Middleware15:
+    Middleware16:
       redirectScheme:
         scheme: foobar
         port: foobar
         permanent: true
-    Middleware16:
+    Middleware17:
       replacePath:
         path: foobar
-    Middleware17:
+    Middleware18:
       replacePathRegex:
         regex: foobar
         replacement: foobar
-    Middleware18:
+    Middleware19:
       retry:
         attempts: 42
-    Middleware19:
+    Middleware20:
       stripPrefix:
         prefixes:
         - foobar
         - foobar
-    Middleware20:
+        forceSlash: true
+    Middleware21:
       stripPrefixRegex:
         regex:
         - foobar
@@ -322,18 +331,19 @@ tcp:
           - foobar
           - foobar
   services:
-    TCPService0:
+    TCPService01:
       loadBalancer:
-        terminationDelay: 100
+        terminationDelay: 42
         servers:
         - address: foobar
         - address: foobar
-    TCPService1:
-      loadBalancer:
-        terminationDelay: 100
-        servers:
-        - address: foobar
-        - address: foobar
+    TCPService02:
+      weighted:
+        services:
+        - name: foobar
+          weight: 42
+        - name: foobar
+          weight: 42
 tls:
   certificates:
   - certFile: foobar
@@ -349,7 +359,11 @@ tls:
   options:
     Options0:
       minVersion: foobar
+      maxVersion: foobar
       cipherSuites:
+      - foobar
+      - foobar
+      curvePreferences:
       - foobar
       - foobar
       clientAuth:
@@ -360,7 +374,11 @@ tls:
       sniStrict: true
     Options1:
       minVersion: foobar
+      maxVersion: foobar
       cipherSuites:
+      - foobar
+      - foobar
+      curvePreferences:
       - foobar
       - foobar
       clientAuth:

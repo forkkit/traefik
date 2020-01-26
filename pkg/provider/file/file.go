@@ -28,9 +28,9 @@ var _ provider.Provider = (*Provider)(nil)
 
 // Provider holds configurations of the provider.
 type Provider struct {
-	Directory                 string `description:"Load configuration from one or more .toml files in a directory." json:"directory,omitempty" toml:"directory,omitempty" yaml:"directory,omitempty" export:"true"`
+	Directory                 string `description:"Load dynamic configuration from one or more .toml or .yml files in a directory." json:"directory,omitempty" toml:"directory,omitempty" yaml:"directory,omitempty" export:"true"`
 	Watch                     bool   `description:"Watch provider." json:"watch,omitempty" toml:"watch,omitempty" yaml:"watch,omitempty" export:"true"`
-	Filename                  string `description:"Override default configuration template. For advanced users :)" json:"filename,omitempty" toml:"filename,omitempty" yaml:"filename,omitempty" export:"true"`
+	Filename                  string `description:"Load dynamic configuration from a file." json:"filename,omitempty" toml:"filename,omitempty" yaml:"filename,omitempty" export:"true"`
 	DebugLogGeneratedTemplate bool   `description:"Enable debug logging of generated configuration template." json:"debugLogGeneratedTemplate,omitempty" toml:"debugLogGeneratedTemplate,omitempty" yaml:"debugLogGeneratedTemplate,omitempty" export:"true"`
 }
 
@@ -199,8 +199,6 @@ func flattenCertificates(ctx context.Context, tlsConfig *dynamic.TLSConfiguratio
 }
 
 func (p *Provider) loadFileConfigFromDirectory(ctx context.Context, directory string, configuration *dynamic.Configuration) (*dynamic.Configuration, error) {
-	logger := log.FromContext(ctx)
-
 	fileList, err := ioutil.ReadDir(directory)
 	if err != nil {
 		return configuration, fmt.Errorf("unable to read directory %s: %v", directory, err)
@@ -227,6 +225,8 @@ func (p *Provider) loadFileConfigFromDirectory(ctx context.Context, directory st
 	configTLSMaps := make(map[*tls.CertAndStores]struct{})
 
 	for _, item := range fileList {
+		logger := log.FromContext(log.With(ctx, log.Str("filename", item.Name())))
+
 		if item.IsDir() {
 			configuration, err = p.loadFileConfigFromDirectory(ctx, filepath.Join(directory, item.Name()), configuration)
 			if err != nil {
@@ -245,7 +245,7 @@ func (p *Provider) loadFileConfigFromDirectory(ctx context.Context, directory st
 		var c *dynamic.Configuration
 		c, err = p.loadFileConfig(ctx, filepath.Join(directory, item.Name()), true)
 		if err != nil {
-			return configuration, err
+			return configuration, fmt.Errorf("%s: %v", filepath.Join(directory, item.Name()), err)
 		}
 
 		for name, conf := range c.HTTP.Routers {

@@ -18,7 +18,7 @@ In the following, the Kubernetes resources defined in YAML configuration files c
 
 !!! important "Kubectl Version"
 
-    With the `rancher/k3s` version used in this guide (`0.8.0`), the kubectl version needs to be >= `0.11`.
+    With the `rancher/k3s` version used in this guide (`0.8.0`), the kubectl version needs to be >= `1.11`.
 
 ## k3s Docker-compose Configuration
 
@@ -101,4 +101,4 @@ curl [-k] https://your.domain.com/tls
 curl [-k] http://your.domain.com:8000/notls
 ```
 
-Note that you'll have to use `-k` as long as you're using the staging server of Let's Encrypt, since it is not in the root DNS servers.
+Note that you'll have to use `-k` as long as you're using the staging server of Let's Encrypt, since it is not an authorized certificate authority on systems where it hasn't been manually added.

@@ -13,7 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Int(v int) *int { return &v }
+func Int(v int) *int    { return &v }
+func Bool(v bool) *bool { return &v }
 
 func TestDefaultRule(t *testing.T) {
 	testCases := []struct {
@@ -64,7 +65,7 @@ func TestDefaultRule(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -113,7 +114,7 @@ func TestDefaultRule(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -164,7 +165,7 @@ func TestDefaultRule(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -208,7 +209,7 @@ func TestDefaultRule(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -252,7 +253,7 @@ func TestDefaultRule(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -301,7 +302,7 @@ func TestDefaultRule(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -338,11 +339,80 @@ func TestDefaultRule(t *testing.T) {
 
 func Test_buildConfiguration(t *testing.T) {
 	testCases := []struct {
-		desc        string
-		containers  []dockerData
-		constraints string
-		expected    *dynamic.Configuration
+		desc          string
+		containers    []dockerData
+		useBindPortIP bool
+		constraints   string
+		expected      *dynamic.Configuration
 	}{
+		{
+			desc: "invalid HTTP service definition",
+			containers: []dockerData{
+				{
+					ServiceName: "Test",
+					Name:        "Test",
+					Labels: map[string]string{
+						"traefik.http.services.test": "",
+					},
+					NetworkSettings: networkSettings{
+						Ports: nat.PortMap{
+							nat.Port("80/tcp"): []nat.PortBinding{},
+						},
+						Networks: map[string]*networkData{
+							"bridge": {
+								Name: "bridge",
+								Addr: "127.0.0.1",
+							},
+						},
+					},
+				},
+			},
+			expected: &dynamic.Configuration{
+				TCP: &dynamic.TCPConfiguration{
+					Routers:  map[string]*dynamic.TCPRouter{},
+					Services: map[string]*dynamic.TCPService{},
+				},
+				HTTP: &dynamic.HTTPConfiguration{
+					Routers:     map[string]*dynamic.Router{},
+					Middlewares: map[string]*dynamic.Middleware{},
+					Services:    map[string]*dynamic.Service{},
+				},
+			},
+		},
+		{
+			desc: "invalid TCP service definition",
+			containers: []dockerData{
+				{
+					ServiceName: "Test",
+					Name:        "Test",
+					Labels: map[string]string{
+						"traefik.tcp.services.test": "",
+					},
+					NetworkSettings: networkSettings{
+						Ports: nat.PortMap{
+							nat.Port("80/tcp"): []nat.PortBinding{},
+						},
+						Networks: map[string]*networkData{
+							"bridge": {
+								Name: "bridge",
+								Addr: "127.0.0.1",
+							},
+						},
+					},
+				},
+			},
+			expected: &dynamic.Configuration{
+				TCP: &dynamic.TCPConfiguration{
+					Routers:  map[string]*dynamic.TCPRouter{},
+					Services: map[string]*dynamic.TCPService{},
+				},
+				HTTP: &dynamic.HTTPConfiguration{
+					Routers:     map[string]*dynamic.Router{},
+					Middlewares: map[string]*dynamic.Middleware{},
+					Services:    map[string]*dynamic.Service{},
+				},
+			},
+		},
 		{
 			desc: "one container no label",
 			containers: []dockerData{
@@ -384,7 +454,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -452,7 +522,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 						"Test2": {
@@ -462,7 +532,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.2:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -531,7 +601,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.2:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -581,7 +651,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -633,7 +703,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -677,7 +747,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -734,7 +804,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -781,7 +851,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 						"Service2": {
@@ -791,7 +861,58 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			desc: "one router, one specified but undefined service -> specified one is assigned, but automatic is created instead",
+			containers: []dockerData{
+				{
+					ServiceName: "Test",
+					Name:        "Test",
+					Labels: map[string]string{
+						"traefik.http.routers.Router1.rule":    "Host(`foo.com`)",
+						"traefik.http.routers.Router1.service": "Service1",
+					},
+					NetworkSettings: networkSettings{
+						Ports: nat.PortMap{
+							nat.Port("80/tcp"): []nat.PortBinding{},
+						},
+						Networks: map[string]*networkData{
+							"bridge": {
+								Name: "bridge",
+								Addr: "127.0.0.1",
+							},
+						},
+					},
+				},
+			},
+			expected: &dynamic.Configuration{
+				TCP: &dynamic.TCPConfiguration{
+					Routers:  map[string]*dynamic.TCPRouter{},
+					Services: map[string]*dynamic.TCPService{},
+				},
+				HTTP: &dynamic.HTTPConfiguration{
+					Routers: map[string]*dynamic.Router{
+						"Router1": {
+							Service: "Service1",
+							Rule:    "Host(`foo.com`)",
+						},
+					},
+					Middlewares: map[string]*dynamic.Middleware{},
+					Services: map[string]*dynamic.Service{
+						"Test": {
+							LoadBalancer: &dynamic.ServersLoadBalancer{
+								Servers: []dynamic.Server{
+									{
+										URL: "http://127.0.0.1:80",
+									},
+								},
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1001,7 +1122,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.2:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1050,7 +1171,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1142,7 +1263,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.2:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1215,7 +1336,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.2:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1310,7 +1431,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.3:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1378,7 +1499,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.2:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1468,7 +1589,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.3:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1541,7 +1662,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.2:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1604,7 +1725,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 						"Test2": {
@@ -1614,7 +1735,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.2:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1664,7 +1785,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1715,7 +1836,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "h2c://127.0.0.1:8080",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1761,7 +1882,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 						"Service2": {
@@ -1771,7 +1892,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:8080",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -1986,7 +2107,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -2047,7 +2168,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.1:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -2297,7 +2418,7 @@ func Test_buildConfiguration(t *testing.T) {
 										URL: "http://127.0.0.2:80",
 									},
 								},
-								PassHostHeader: true,
+								PassHostHeader: Bool(true),
 							},
 						},
 					},
@@ -2395,6 +2516,64 @@ func Test_buildConfiguration(t *testing.T) {
 				},
 			},
 		},
+		{
+			desc: "useBindPortIP with LblPort |	ExtIp:ExtPort:LblPort => ExtIp:ExtPort",
+			containers: []dockerData{
+				{
+					ServiceName: "Test",
+					Name:        "Test",
+					Labels: map[string]string{
+						"traefik.http.services.Test.loadbalancer.server.port": "80",
+					},
+					NetworkSettings: networkSettings{
+						Ports: nat.PortMap{
+							nat.Port("79/tcp"): []nat.PortBinding{{
+								HostIP:   "192.168.0.1",
+								HostPort: "8080",
+							}},
+							nat.Port("80/tcp"): []nat.PortBinding{{
+								HostIP:   "192.168.0.1",
+								HostPort: "8081",
+							}},
+						},
+						Networks: map[string]*networkData{
+							"bridge": {
+								Name: "bridge",
+								Addr: "127.0.0.1",
+							},
+						},
+					},
+				},
+			},
+			useBindPortIP: true,
+			expected: &dynamic.Configuration{
+				TCP: &dynamic.TCPConfiguration{
+					Routers:  map[string]*dynamic.TCPRouter{},
+					Services: map[string]*dynamic.TCPService{},
+				},
+				HTTP: &dynamic.HTTPConfiguration{
+					Routers: map[string]*dynamic.Router{
+						"Test": {
+							Service: "Test",
+							Rule:    "Host(`Test.traefik.wtf`)",
+						},
+					},
+					Middlewares: map[string]*dynamic.Middleware{},
+					Services: map[string]*dynamic.Service{
+						"Test": {
+							LoadBalancer: &dynamic.ServersLoadBalancer{
+								Servers: []dynamic.Server{
+									{
+										URL: "http://192.168.0.1:8081",
+									},
+								},
+								PassHostHeader: Bool(true),
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, test := range testCases {
@@ -2406,6 +2585,7 @@ func Test_buildConfiguration(t *testing.T) {
 			p := Provider{
 				ExposedByDefault: true,
 				DefaultRule:      "Host(`{{ normalize .Name }}.traefik.wtf`)",
+				UseBindPortIP:    test.useBindPortIP,
 			}
 			p.Constraints = test.constraints
 

@@ -27,6 +27,15 @@ func TestDecodeToNode(t *testing.T) {
 			expected: expected{node: nil},
 		},
 		{
+			desc: "invalid label, ending by a dot",
+			in: map[string]string{
+				"traefik.http.": "bar",
+			},
+			expected: expected{
+				error: true,
+			},
+		},
+		{
 			desc: "level 1",
 			in: map[string]string{
 				"traefik.foo": "bar",
@@ -113,6 +122,22 @@ func TestDecodeToNode(t *testing.T) {
 					{Name: "foo", Children: []*Node{
 						{Name: "aaa", Value: "bar"},
 						{Name: "bbb", Value: "bur"},
+					}},
+				},
+			}},
+		},
+		{
+			desc: "several entries, level 2, case insensitive",
+			in: map[string]string{
+				"traefik.foo.aaa": "bar",
+				"traefik.Foo.bbb": "bur",
+			},
+			expected: expected{node: &Node{
+				Name: "traefik",
+				Children: []*Node{
+					{Name: "Foo", Children: []*Node{
+						{Name: "bbb", Value: "bur"},
+						{Name: "aaa", Value: "bar"},
 					}},
 				},
 			}},

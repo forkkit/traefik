@@ -15,7 +15,7 @@ import (
 func NewCmd(traefikConfiguration *static.Configuration, loaders []cli.ResourceLoader) *cli.Command {
 	return &cli.Command{
 		Name:          "healthcheck",
-		Description:   `Calls Traefik /ping to check the health of Traefik (the API must be enabled).`,
+		Description:   `Calls Traefik /ping endpoint (disabled by default) to check the health of Traefik.`,
 		Configuration: traefikConfiguration,
 		Run:           runCmd(traefikConfiguration),
 		Resources:     loaders,
@@ -51,9 +51,14 @@ func Do(staticConfiguration static.Configuration) (*http.Response, error) {
 		return nil, errors.New("please enable `ping` to use health check")
 	}
 
-	pingEntryPoint, ok := staticConfiguration.EntryPoints["traefik"]
+	ep := staticConfiguration.Ping.EntryPoint
+	if ep == "" {
+		ep = "traefik"
+	}
+
+	pingEntryPoint, ok := staticConfiguration.EntryPoints[ep]
 	if !ok {
-		return nil, errors.New("missing `ping` entrypoint")
+		return nil, fmt.Errorf("ping: missing %s entry point", ep)
 	}
 
 	client := &http.Client{Timeout: 5 * time.Second}

@@ -60,7 +60,14 @@ spec:
   routes:
     # more fields...
     middlewares:
-    - name: stripprefix
+      - name: stripprefix
+```
+
+```yaml tab="Consul Catalog"
+# Create a middleware named `foo-add-prefix`
+- "traefik.http.middlewares.foo-add-prefix.addprefix.prefix=/foo"
+# Apply the middleware named `foo-add-prefix` to the router named `router1`
+- "traefik.http.routers.router1.middlewares=foo-add-prefix@consulcatalog"
 ```
 
 ```json tab="Marathon"
@@ -106,7 +113,7 @@ http:
     router1:
       service: myService
       middlewares:
-      - "foo-add-prefix"
+        - "foo-add-prefix"
       rule: "Host(`example.com`)"
 
   middlewares:
@@ -118,7 +125,7 @@ http:
     service1:
       loadBalancer:
         servers:
-        - url: "http://127.0.0.1:80"
+          - url: "http://127.0.0.1:80"
 ```
 
 ## Provider Namespace
@@ -183,14 +190,14 @@ and therefore this specification would be ignored even if present.
       routes:
         - match: Host(`bar.com`)
           kind: Rule
-        services:
-          - name: whoami
-            port: 80
-        middlewares:
-          - name: add-foo-prefix@file
-          # namespace: bar
-          # A namespace specification such as above is ignored
-          # when the cross-provider syntax is used.
+          services:
+            - name: whoami
+              port: 80
+          middlewares:
+            - name: add-foo-prefix@file
+            # namespace: bar
+            # A namespace specification such as above is ignored
+            # when the cross-provider syntax is used.
     ```
 
 ## Available Middlewares

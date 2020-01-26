@@ -16,7 +16,7 @@ Static configuration:
 [api]
     
 [providers.file]
-  filename = "dynamic_conf.toml"
+  directory = "/path/to/dynamic/config"
 ```
 
 ```yaml tab="File (YAML)"
@@ -26,18 +26,18 @@ entryPoints:
 
 providers:
   file:
-    filename: dynamic_conf.yml
+    directory: /path/to/dynamic/config
 
 api: {}
 ```
 
 ```yaml tab="CLI"
---entryPoints.web.address=":80"
---providers.file.filename=dynamic_conf.toml
+--entryPoints.web.address=:80
+--providers.file.directory=/path/to/dynamic/config
 --api.insecure=true
 ```
 
-`dynamic_conf.{toml,yml}`:
+`/path/to/dynamic/config/dynamic_conf.{toml,yml}`:
 
 ```toml tab="TOML"
 ## dynamic configuration ##
@@ -132,7 +132,7 @@ Static configuration:
 [api]
 
 [provider.file]
-  filename = "dynamic_conf.toml"
+  directory = "/path/to/dynamic/config"
 ```
 
 ```yaml tab="File (YAML)"
@@ -143,24 +143,24 @@ entryPoints:
 serversTransport:
   # For secure connection on backend.local
   rootCAs:
-  - ./backend.cert
+    - ./backend.cert
 
 providers:
   file:
-    filename: dynamic_conf.yml
+    directory: /path/to/dynamic/config
 
 api: {}
 ```
 
 ```yaml tab="CLI"
---entryPoints.websecure.address=":4443"
+--entryPoints.websecure.address=:4443
 # For secure connection on backend.local
 --serversTransport.rootCAs=./backend.cert
---providers.file.filename=dynamic_conf.toml
+--providers.file.directory=/path/to/dynamic/config
 --api.insecure=true
 ```
 
-`dynamic_conf.{toml,yml}`:
+`/path/to/dynamic/config/dynamic_conf.{toml,yml}`:
 
 ```toml tab="TOML"
 ## dynamic configuration ##

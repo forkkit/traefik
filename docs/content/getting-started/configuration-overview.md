@@ -16,28 +16,30 @@ The _dynamic configuration_ contains everything that defines how the requests ar
 This configuration can change and is seamlessly hot-reloaded, without any request interruption or connection loss.    
 
 !!! warning "Incompatible Configuration"
-    Please be aware that the old configurations for Traefik v1.X are NOT compatible with the v2.X config as of now.
-    If you're testing out v2, please ensure you are using a v2 configuration.
+    Please be aware that the old configurations for Traefik v1.x are NOT compatible with the v2.x config as of now.
+    If you are running v2, please ensure you are using a v2 configuration.
 
 ## The Dynamic Configuration 
 
-Traefik gets its _dynamic configuration_ from [providers](../providers/overview.md): whether an orchestrator, a service registry, or a plain old configuration file. Since this configuration is specific to your infrastructure choices, we invite you to refer to the [dedicated section of this documentation](../providers/overview.md).
+Traefik gets its _dynamic configuration_ from [providers](../providers/overview.md): whether an orchestrator, a service registry, or a plain old configuration file.
 
-!!! Note 
+Since this configuration is specific to your infrastructure choices, we invite you to refer to the [dedicated section of this documentation](../routing/overview.md).
+
+!!! info ""
 
     In the [Quick Start example](../getting-started/quick-start.md), the dynamic configuration comes from docker in the form of labels attached to your containers.
     
-!!! Note
+!!! info "HTTPS Certificates also belong to the dynamic configuration."
     
-    HTTPS Certificates also belong to the dynamic configuration. You can add / update / remove them without restarting your Traefik instance. 
+    You can add / update / remove them without restarting your Traefik instance. 
  
 ## The Static Configuration
 
-There are three different, mutually exclusive, ways to define static configuration options in Traefik:
+There are three different, **mutually exclusive** (e.g. you can use only one at the same time), ways to define static configuration options in Traefik:
 
-- In a configuration file
-- In the command-line arguments
-- As environment variables
+1. In a configuration file
+1. In the command-line arguments
+1. As environment variables
 
 These ways are evaluated in the order listed above.
 

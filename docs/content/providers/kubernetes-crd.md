@@ -8,6 +8,61 @@ Traefik used to support Kubernetes only through the [Kubernetes Ingress provider
 However, as the community expressed the need to benefit from Traefik features without resorting to (lots of) annotations,
 we ended up writing a [Custom Resource Definition](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) (alias CRD in the following) for an IngressRoute type, defined below, in order to provide a better way to configure access to a Kubernetes cluster.
 
+## Configuration Requirements
+
+!!! tip "All Steps for a Successful Deployment"
+
+    * Add/update **all** the Traefik resources [definitions](../reference/dynamic-configuration/kubernetes-crd.md#definitions)
+    * Add/update the [RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/) for the Traefik custom resources
+    * Use [Helm Chart](../getting-started/install-traefik.md#use-the-helm-chart) or use a custom Traefik Deployment 
+        * Enable the kubernetesCRD provider
+        * Apply the needed kubernetesCRD provider [configuration](#provider-configuration)
+    * Add all needed traefik custom [resources](../reference/dynamic-configuration/kubernetes-crd.md#resources)
+ 
+??? example "Initializing Resource Definition and RBAC"
+
+    ```yaml tab="Traefik Resource Definition"
+    # All resources definition must be declared
+    --8<-- "content/reference/dynamic-configuration/kubernetes-crd-definition.yml"
+    ```
+
+    ```yaml tab="RBAC for Traefik CRD"
+    --8<-- "content/reference/dynamic-configuration/kubernetes-crd-rbac.yml"
+    ```
+
+## Resource Configuration
+
+When using KubernetesCRD as a provider,
+Traefik uses [Custom Resource Definition](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) to retrieve its routing configuration.
+Traefik Custom Resource Definitions are a Kubernetes implementation of the Traefik concepts. The main particularities are:
+
+* The usage of `name` **and** `namespace` to refer to another Kubernetes resource.
+* The usage of [secret](https://kubernetes.io/docs/concepts/configuration/secret/) for sensible data like:
+    * TLS certificate.
+    * Authentication data.
+* The structure of the configuration.
+* The obligation to declare all the [definitions](../reference/dynamic-configuration/kubernetes-crd.md#definitions).
+
+The Traefik CRD are building blocks which you can assemble according to your needs.
+See the list of CRDs in the dedicated [routing section](../routing/providers/kubernetes-crd.md).
+
+## LetsEncrypt Support with the Custom Resource Definition Provider
+
+By design, Traefik is a stateless application, meaning that it only derives its configuration from the environment it runs in, without additional configuration.
+For this reason, users can run multiple instances of Traefik at the same time to achieve HA, as is a common pattern in the kubernetes ecosystem.
+
+When using a single instance of Traefik with LetsEncrypt, no issues should be encountered, however this could be a single point of failure.
+Unfortunately, it is not possible to run multiple instances of Traefik 2.0 with LetsEncrypt enabled, because there is no way to ensure that the correct instance of Traefik will receive the challenge request, and subsequent responses.
+Previous versions of Traefik used a [KV store](https://docs.traefik.io/v1.7/configuration/acme/#storage) to attempt to achieve this, but due to sub-optimal performance was dropped as a feature in 2.0.
+
+If you require LetsEncrypt with HA in a kubernetes environment, we recommend using [TraefikEE](https://containo.us/traefikee/) where distributed LetsEncrypt is a supported feature.
+
+If you are wanting to continue to run Traefik Community Edition, LetsEncrypt HA can be achieved by using a Certificate Controller such as [Cert-Manager](https://docs.cert-manager.io/en/latest/index.html).
+When using Cert-Manager to manage certificates, it will create secrets in your namespaces that can be referenced as TLS secrets in your [ingress objects](https://kubernetes.io/docs/concepts/services-networking/ingress/#tls).
+When using the Traefik Kubernetes CRD Provider, unfortunately Cert-Manager cannot interface directly with the CRDs _yet_, but this is being worked on by our team.
+A workaround it to enable the [Kubernetes Ingress provider](./kubernetes-ingress.md) to allow Cert-Manager to create ingress objects to complete the challenges.
+Please note that this still requires manual intervention to create the certificates through Cert-Manager, but once created, Cert-Manager will keep the certificate renewed.
+
 ## Provider Configuration
 
 ### `endpoint`
@@ -28,7 +83,7 @@ providers:
 ```
 
 ```bash tab="CLI"
---providers.kubernetescrd.endpoint="http://localhost:8080"
+--providers.kubernetescrd.endpoint=http://localhost:8080
 ```
 
 The Kubernetes server endpoint as URL.
@@ -62,7 +117,7 @@ providers:
 ```
 
 ```bash tab="CLI"
---providers.kubernetescrd.token="mytoken"
+--providers.kubernetescrd.token=mytoken
 ```
 
 Bearer token used for the Kubernetes client configuration.
@@ -85,7 +140,7 @@ providers:
 ```
 
 ```bash tab="CLI"
---providers.kubernetescrd.certauthfilepath="/my/ca.crt"
+--providers.kubernetescrd.certauthfilepath=/my/ca.crt
 ```
 
 Path to the certificate authority file.
@@ -111,7 +166,7 @@ providers:
 ```
 
 ```bash tab="CLI"
---providers.kubernetescrd.namespaces="default,production"
+--providers.kubernetescrd.namespaces=default,production
 ```
 
 Array of namespaces to watch.
@@ -160,7 +215,7 @@ providers:
 ```
 
 ```bash tab="CLI"
---providers.kubernetescrd.ingressclass="traefik-internal"
+--providers.kubernetescrd.ingressclass=traefik-internal
 ```
 
 Value of `kubernetes.io/ingress.class` annotation that identifies Ingress objects to be processed.
@@ -186,204 +241,7 @@ providers:
 ```
 
 ```bash tab="CLI"
---providers.kubernetescrd.throttleDuration="10s"
-```
-
-## Resource Configuration
-
-If you're in a hurry, maybe you'd rather go through the [dynamic](../reference/dynamic-configuration/kubernetes-crd.md) configuration reference.
-
-### Traefik IngressRoute definition
-
-```yaml
---8<-- "content/providers/crd_ingress_route.yml"
-```
-
-That `IngressRoute` kind can then be used to define an `IngressRoute` object, such as in:
-
-```yaml
-apiVersion: traefik.containo.us/v1alpha1
-kind: IngressRoute
-metadata:
-  name: ingressroutefoo
-
-spec:
-  entryPoints:
-    - web
-  routes:
-  # Match is the rule corresponding to an underlying router.
-  # Later on, match could be the simple form of a path prefix, e.g. just "/bar",
-  # but for now we only support a traefik style matching rule.
-  - match: Host(`foo.com`) && PathPrefix(`/bar`)
-    # kind could eventually be one of "Rule", "Path", "Host", "Method", "Header",
-    # "Parameter", etc, to support simpler forms of rule matching, but for now we
-    # only support "Rule".
-    kind: Rule
-    # (optional) Priority disambiguates rules of the same length, for route matching.
-    priority: 12
-    services:
-    - name: whoami
-      port: 80
-      # (default 1) A weight used by the weighted round-robin strategy (WRR).  
-      weight: 1
-      # (default true) PassHostHeader controls whether to leave the request's Host
-      # Header as it was before it reached the proxy, or whether to let the proxy set it
-      # to the destination (backend) host.
-      passHostHeader: true
-      responseForwarding:
-        # (default 100ms) Interval between flushes of the buffered response body to the client.
-        flushInterval: 100ms
-
----
-apiVersion: traefik.containo.us/v1alpha1
-kind: IngressRouteTCP
-metadata:
-  name: ingressroutetcpfoo.crd
-
-spec:
-  entryPoints:
-    - footcp
-  routes:
-  # Match is the rule corresponding to an underlying router.
-  - match: HostSNI(`*`)
-    services:
-    - name: whoamitcp
-      port: 8080
-```
-
-### Middleware
-
-Additionally, to allow for the use of middlewares in an `IngressRoute`, we defined the CRD below for the `Middleware` kind.
-
-```yaml
---8<-- "content/providers/crd_middlewares.yml"
-```
-
-Once the `Middleware` kind has been registered with the Kubernetes cluster, it can then be used in `IngressRoute` definitions, such as:
-
-```yaml
-apiVersion: traefik.containo.us/v1alpha1
-kind: Middleware
-metadata:
-  name: stripprefix
-  namespace: foo
-
-spec:
-  stripPrefix:
-    prefixes:
-      - /stripit
-
----
-apiVersion: traefik.containo.us/v1alpha1
-kind: IngressRoute
-metadata:
-  name: ingressroutebar
-
-spec:
-  entryPoints:
-    - web
-  routes:
-  - match: Host(`bar.com`) && PathPrefix(`/stripit`)
-    kind: Rule
-    services:
-    - name: whoami
-      port: 80
-    middlewares:
-    - name: stripprefix
-      namespace: foo
-```
-
-!!! important "Cross-provider namespace"
-
-	As Kubernetes also has its own notion of namespace, one should not confuse the kubernetes namespace of a resource
-(in the reference to the middleware) with the [provider namespace](../middlewares/overview.md#provider-namespace),
-when the definition of the middleware is from another provider.
-In this context, specifying a namespace when referring to the resource does not make any sense, and will be ignored.
-
-More information about available middlewares in the dedicated [middlewares section](../middlewares/overview.md).
-
-### TLS Option
-
-Additionally, to allow for the use of TLS options in an IngressRoute, we defined the CRD below for the TLSOption kind.
-More information about TLS Options is available in the dedicated [TLS Configuration Options](../../https/tls/#tls-options).
-
-```yaml
---8<-- "content/providers/crd_tls_option.yml"
-```
-
-Once the TLSOption kind has been registered with the Kubernetes cluster or defined in the File Provider, it can then be used in IngressRoute definitions, such as:
-
-```yaml
-apiVersion: traefik.containo.us/v1alpha1
-kind: TLSOption
-metadata:
-  name: mytlsoption
-  namespace: default
-
-spec:
-  minVersion: VersionTLS12
-
----
-apiVersion: traefik.containo.us/v1alpha1
-kind: IngressRoute
-metadata:
-  name: ingressroutebar
-
-spec:
-  entryPoints:
-    - web
-  routes:
-  - match: Host(`bar.com`) && PathPrefix(`/stripit`)
-    kind: Rule
-    services:
-    - name: whoami
-      port: 80
-  tls:
-    options: 
-      name: mytlsoption
-      namespace: default
-```
-
-!!! important "References and namespaces"
-
-    If the optional `namespace` attribute is not set, the configuration will be applied with the namespace of the IngressRoute.
-
-	Additionally, when the definition of the TLS option is from another provider,
-the cross-provider syntax (`middlewarename@provider`) should be used to refer to the TLS option,
-just as in the [middleware case](../middlewares/overview.md#provider-namespace).
-Specifying a namespace attribute in this case would not make any sense, and will be ignored.
-
-### TLS
-
-To allow for TLS, we made use of the `Secret` kind, as it was already defined, and it can be directly used in an `IngressRoute`:
-
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: supersecret
-
-data:
-  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0=
-  tls.key: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCi0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0=
-
----
-apiVersion: traefik.containo.us/v1alpha1
-kind: IngressRoute
-metadata:
-  name: ingressroutetls
-
-spec:
-  entryPoints:
-    - web
-  routes:
-  - match: Host(`foo.com`) && PathPrefix(`/bar`)
-    kind: Rule
-    services:
-    - name: whoami
-      port: 443
-  tls:
-    secretName: supersecret
+--providers.kubernetescrd.throttleDuration=10s
 ```
 
 ## Further

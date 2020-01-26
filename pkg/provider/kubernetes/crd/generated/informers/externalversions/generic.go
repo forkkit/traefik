@@ -1,7 +1,7 @@
 /*
 The MIT License (MIT)
 
-Copyright (c) 2016-2019 Containous SAS
+Copyright (c) 2016-2020 Containous SAS
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -69,6 +69,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Traefik().V1alpha1().Middlewares().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("tlsoptions"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Traefik().V1alpha1().TLSOptions().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("traefikservices"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Traefik().V1alpha1().TraefikServices().Informer()}, nil
 
 	}
 

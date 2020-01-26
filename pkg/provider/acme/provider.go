@@ -323,7 +323,7 @@ func (p *Provider) resolveDomains(ctx context.Context, domains []string, tlsStor
 		return
 	}
 
-	log.FromContext(ctx).Debugf("Try to challenge certificate for domain %v founded in HostSNI rule", domains)
+	log.FromContext(ctx).Debugf("Try to challenge certificate for domain %v found in HostSNI rule", domains)
 
 	var domain types.Domain
 	if len(domains) > 0 {
@@ -414,7 +414,6 @@ func (p *Provider) watchNewDomains(ctx context.Context) {
 						}
 						p.resolveDomains(ctxRouter, domains, tlsStore)
 					}
-
 				}
 			case <-stop:
 				return

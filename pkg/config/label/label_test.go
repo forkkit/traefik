@@ -3,8 +3,10 @@ package label
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/containous/traefik/v2/pkg/config/dynamic"
+	"github.com/containous/traefik/v2/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -84,6 +86,7 @@ func TestDecodeConfiguration(t *testing.T) {
 		"traefik.http.middlewares.Middleware11.passtlsclientcert.info.notafter":                    "true",
 		"traefik.http.middlewares.Middleware11.passtlsclientcert.info.notbefore":                   "true",
 		"traefik.http.middlewares.Middleware11.passtlsclientcert.info.sans":                        "true",
+		"traefik.http.middlewares.Middleware11.passTLSClientCert.info.serialNumber":                "true",
 		"traefik.http.middlewares.Middleware11.passtlsclientcert.info.subject.commonname":          "true",
 		"traefik.http.middlewares.Middleware11.passtlsclientcert.info.subject.country":             "true",
 		"traefik.http.middlewares.Middleware11.passtlsclientcert.info.subject.domaincomponent":     "true",
@@ -100,6 +103,7 @@ func TestDecodeConfiguration(t *testing.T) {
 		"traefik.http.middlewares.Middleware11.passtlsclientcert.info.issuer.serialnumber":         "true",
 		"traefik.http.middlewares.Middleware11.passtlsclientcert.pem":                              "true",
 		"traefik.http.middlewares.Middleware12.ratelimit.average":                                  "42",
+		"traefik.http.middlewares.Middleware12.ratelimit.period":                                   "1s",
 		"traefik.http.middlewares.Middleware12.ratelimit.burst":                                    "42",
 		"traefik.http.middlewares.Middleware12.ratelimit.sourcecriterion.requestheadername":        "foobar",
 		"traefik.http.middlewares.Middleware12.ratelimit.sourcecriterion.requesthost":              "true",
@@ -294,8 +298,9 @@ func TestDecodeConfiguration(t *testing.T) {
 					PassTLSClientCert: &dynamic.PassTLSClientCert{
 						PEM: true,
 						Info: &dynamic.TLSClientCertificateInfo{
-							NotAfter:  true,
-							NotBefore: true,
+							NotAfter:     true,
+							NotBefore:    true,
+							SerialNumber: true,
 							Subject: &dynamic.TLSCLientCertificateDNInfo{
 								Country:         true,
 								Province:        true,
@@ -322,6 +327,7 @@ func TestDecodeConfiguration(t *testing.T) {
 					RateLimit: &dynamic.RateLimit{
 						Average: 42,
 						Burst:   42,
+						Period:  types.Duration(time.Second),
 						SourceCriterion: &dynamic.SourceCriterion{
 							IPStrategy: &dynamic.IPStrategy{
 								Depth:       42,
@@ -368,6 +374,7 @@ func TestDecodeConfiguration(t *testing.T) {
 							"foobar",
 							"fiibar",
 						},
+						ForceSlash: true,
 					},
 				},
 				"Middleware18": {
@@ -544,7 +551,7 @@ func TestDecodeConfiguration(t *testing.T) {
 								"name1": "foobar",
 							},
 						},
-						PassHostHeader: true,
+						PassHostHeader: func(v bool) *bool { return &v }(true),
 						ResponseForwarding: &dynamic.ResponseForwarding{
 							FlushInterval: "foobar",
 						},
@@ -570,7 +577,7 @@ func TestDecodeConfiguration(t *testing.T) {
 								"name1": "foobar",
 							},
 						},
-						PassHostHeader: true,
+						PassHostHeader: func(v bool) *bool { return &v }(true),
 						ResponseForwarding: &dynamic.ResponseForwarding{
 							FlushInterval: "foobar",
 						},
@@ -698,8 +705,9 @@ func TestEncodeConfiguration(t *testing.T) {
 					PassTLSClientCert: &dynamic.PassTLSClientCert{
 						PEM: true,
 						Info: &dynamic.TLSClientCertificateInfo{
-							NotAfter:  true,
-							NotBefore: true,
+							NotAfter:     true,
+							NotBefore:    true,
+							SerialNumber: true,
 							Subject: &dynamic.TLSCLientCertificateDNInfo{
 								Country:         true,
 								Province:        true,
@@ -725,6 +733,7 @@ func TestEncodeConfiguration(t *testing.T) {
 					RateLimit: &dynamic.RateLimit{
 						Average: 42,
 						Burst:   42,
+						Period:  types.Duration(time.Second),
 						SourceCriterion: &dynamic.SourceCriterion{
 							IPStrategy: &dynamic.IPStrategy{
 								Depth:       42,
@@ -771,6 +780,7 @@ func TestEncodeConfiguration(t *testing.T) {
 							"foobar",
 							"fiibar",
 						},
+						ForceSlash: true,
 					},
 				},
 				"Middleware18": {
@@ -946,7 +956,7 @@ func TestEncodeConfiguration(t *testing.T) {
 								"name1": "foobar",
 							},
 						},
-						PassHostHeader: true,
+						PassHostHeader: func(v bool) *bool { return &v }(true),
 						ResponseForwarding: &dynamic.ResponseForwarding{
 							FlushInterval: "foobar",
 						},
@@ -972,7 +982,7 @@ func TestEncodeConfiguration(t *testing.T) {
 								"name1": "foobar",
 							},
 						},
-						PassHostHeader: true,
+						PassHostHeader: func(v bool) *bool { return &v }(true),
 						ResponseForwarding: &dynamic.ResponseForwarding{
 							FlushInterval: "foobar",
 						},
@@ -1059,6 +1069,7 @@ func TestEncodeConfiguration(t *testing.T) {
 		"traefik.HTTP.Middlewares.Middleware11.PassTLSClientCert.Info.NotAfter":                    "true",
 		"traefik.HTTP.Middlewares.Middleware11.PassTLSClientCert.Info.NotBefore":                   "true",
 		"traefik.HTTP.Middlewares.Middleware11.PassTLSClientCert.Info.Sans":                        "true",
+		"traefik.HTTP.Middlewares.Middleware11.PassTLSClientCert.Info.SerialNumber":                "true",
 		"traefik.HTTP.Middlewares.Middleware11.PassTLSClientCert.Info.Subject.Country":             "true",
 		"traefik.HTTP.Middlewares.Middleware11.PassTLSClientCert.Info.Subject.Province":            "true",
 		"traefik.HTTP.Middlewares.Middleware11.PassTLSClientCert.Info.Subject.Locality":            "true",
@@ -1075,6 +1086,7 @@ func TestEncodeConfiguration(t *testing.T) {
 		"traefik.HTTP.Middlewares.Middleware11.PassTLSClientCert.Info.Issuer.DomainComponent":      "true",
 		"traefik.HTTP.Middlewares.Middleware11.PassTLSClientCert.PEM":                              "true",
 		"traefik.HTTP.Middlewares.Middleware12.RateLimit.Average":                                  "42",
+		"traefik.HTTP.Middlewares.Middleware12.RateLimit.Period":                                   "1000000000",
 		"traefik.HTTP.Middlewares.Middleware12.RateLimit.Burst":                                    "42",
 		"traefik.HTTP.Middlewares.Middleware12.RateLimit.SourceCriterion.RequestHeaderName":        "foobar",
 		"traefik.HTTP.Middlewares.Middleware12.RateLimit.SourceCriterion.RequestHost":              "true",
@@ -1091,6 +1103,7 @@ func TestEncodeConfiguration(t *testing.T) {
 		"traefik.HTTP.Middlewares.Middleware15.ReplacePathRegex.Replacement":                       "foobar",
 		"traefik.HTTP.Middlewares.Middleware16.Retry.Attempts":                                     "42",
 		"traefik.HTTP.Middlewares.Middleware17.StripPrefix.Prefixes":                               "foobar, fiibar",
+		"traefik.HTTP.Middlewares.Middleware17.StripPrefix.ForceSlash":                             "true",
 		"traefik.HTTP.Middlewares.Middleware18.StripPrefixRegex.Regex":                             "foobar, fiibar",
 		"traefik.HTTP.Middlewares.Middleware19.Compress":                                           "true",
 

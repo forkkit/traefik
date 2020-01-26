@@ -31,8 +31,9 @@ TRAEFIK_ENVS := \
 
 TRAEFIK_MOUNT := -v "$(CURDIR)/$(BIND_DIR):/go/src/github.com/containous/traefik/$(BIND_DIR)"
 DOCKER_RUN_OPTS := $(TRAEFIK_ENVS) $(TRAEFIK_MOUNT) "$(TRAEFIK_DEV_IMAGE)"
-DOCKER_RUN_TRAEFIK := docker run $(INTEGRATION_OPTS) -it $(DOCKER_RUN_OPTS)
-DOCKER_RUN_TRAEFIK_NOTTY := docker run $(INTEGRATION_OPTS) -i $(DOCKER_RUN_OPTS)
+DOCKER_NON_INTERACTIVE ?= false
+DOCKER_RUN_TRAEFIK := docker run $(INTEGRATION_OPTS) $(if $(DOCKER_NON_INTERACTIVE), , -it) $(DOCKER_RUN_OPTS)
+DOCKER_RUN_TRAEFIK_NOTTY := docker run $(INTEGRATION_OPTS) $(if $(DOCKER_NON_INTERACTIVE), , -i) $(DOCKER_RUN_OPTS)
 
 PRE_TARGET ?= build-dev-image
 
@@ -131,7 +132,7 @@ generate-crd:
 ## Create packages for the release
 release-packages: generate-webui build-dev-image
 	rm -rf dist
-	$(DOCKER_RUN_TRAEFIK_NOTTY) goreleaser release --skip-publish
+	$(DOCKER_RUN_TRAEFIK_NOTTY) goreleaser release --skip-publish --timeout="60m"
 	$(DOCKER_RUN_TRAEFIK_NOTTY) tar cfz dist/traefik-${VERSION}.src.tar.gz \
 		--exclude-vcs \
 		--exclude .idea \

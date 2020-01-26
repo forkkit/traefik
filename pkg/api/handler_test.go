@@ -11,7 +11,6 @@ import (
 	"github.com/containous/traefik/v2/pkg/config/dynamic"
 	"github.com/containous/traefik/v2/pkg/config/runtime"
 	"github.com/containous/traefik/v2/pkg/config/static"
-	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -38,6 +37,7 @@ func TestHandler_RawData(t *testing.T) {
 					"foo-service@myprovider": {
 						Service: &dynamic.Service{
 							LoadBalancer: &dynamic.ServersLoadBalancer{
+								PassHostHeader: Bool(true),
 								Servers: []dynamic.Server{
 									{
 										URL: "http://127.0.0.1",
@@ -136,10 +136,7 @@ func TestHandler_RawData(t *testing.T) {
 
 			rtConf.PopulateUsedBy()
 			handler := New(static.Configuration{API: &static.API{}, Global: &static.Global{}}, rtConf)
-			router := mux.NewRouter()
-			handler.Append(router)
-
-			server := httptest.NewServer(router)
+			server := httptest.NewServer(handler.createRouter())
 
 			resp, err := http.DefaultClient.Get(server.URL + test.path)
 			require.NoError(t, err)

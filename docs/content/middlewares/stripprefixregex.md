@@ -9,7 +9,7 @@ Remove the matching prefixes from the URL path.
 
 ```yaml tab="Docker"
 labels:
-- "traefik.http.middlewares.test-stripprefixregex.stripprefixregex.regex=/foo/[a-z0-9]+/[0-9]+/"
+  - "traefik.http.middlewares.test-stripprefixregex.stripprefixregex.regex=/foo/[a-z0-9]+/[0-9]+/"
 ```
 
 ```yaml tab="Kubernetes"
@@ -20,7 +20,11 @@ metadata:
 spec:
   stripPrefixRegex:
     regex:
-    - "/foo/[a-z0-9]+/[0-9]+/"
+      - "/foo/[a-z0-9]+/[0-9]+/"
+```
+
+```yaml tab="Consul Catalog"
+- "traefik.http.middlewares.test-stripprefixregex.stripprefixregex.regex=/foo/[a-z0-9]+/[0-9]+/"
 ```
 
 ```json tab="Marathon"
@@ -31,7 +35,7 @@ spec:
 
 ```yaml tab="Rancher"
 labels:
-- "traefik.http.middlewares.test-stripprefixregex.stripprefixregex.regex=/foo/[a-z0-9]+/[0-9]+/"
+  - "traefik.http.middlewares.test-stripprefixregex.stripprefixregex.regex=/foo/[a-z0-9]+/[0-9]+/"
 ```
 
 ```toml tab="File (TOML)"
@@ -46,7 +50,7 @@ http:
     test-stripprefixregex:
       stripPrefixRegex:
         regex:
-        - "/foo/[a-z0-9]+/[0-9]+/"
+          - "/foo/[a-z0-9]+/[0-9]+/"
 ```
 
 ## Configuration Options

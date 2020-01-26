@@ -1,7 +1,7 @@
 /*
 The MIT License (MIT)
 
-Copyright (c) 2016-2019 Containous SAS
+Copyright (c) 2016-2020 Containous SAS
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,6 +38,7 @@ type TraefikV1alpha1Interface interface {
 	IngressRouteTCPsGetter
 	MiddlewaresGetter
 	TLSOptionsGetter
+	TraefikServicesGetter
 }
 
 // TraefikV1alpha1Client is used to interact with features provided by the traefik.containo.us group.
@@ -59,6 +60,10 @@ func (c *TraefikV1alpha1Client) Middlewares(namespace string) MiddlewareInterfac
 
 func (c *TraefikV1alpha1Client) TLSOptions(namespace string) TLSOptionInterface {
 	return newTLSOptions(c, namespace)
+}
+
+func (c *TraefikV1alpha1Client) TraefikServices(namespace string) TraefikServiceInterface {
+	return newTraefikServices(c, namespace)
 }
 
 // NewForConfig creates a new TraefikV1alpha1Client for the given config.

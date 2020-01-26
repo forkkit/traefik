@@ -33,7 +33,7 @@ Pointing Traefik at your orchestrator should be the _only_ configuration step yo
 
 ---
 
-:warning: Please be aware that the old configurations for Traefik v1.X are NOT compatible with the v2.X config as of now. If you're testing out v2, please ensure you are using a [v2 configuration](https://docs.traefik.io/v2.0/).
+:warning: Please be aware that the old configurations for Traefik v1.x are NOT compatible with the v2.x config as of now. If you're running v2, please ensure you are using a [v2 configuration](https://docs.traefik.io/).
 
 ## Overview
 
@@ -69,22 +69,15 @@ _(But if you'd rather configure some of your routes manually, Traefik supports t
 
 ## Supported Backends
 
-- [Docker](https://docs.traefik.io/configuration/backends/docker) / [Swarm mode](https://docs.traefik.io/configuration/backends/docker#docker-swarm-mode)
-- [Kubernetes](https://docs.traefik.io/configuration/backends/kubernetes)
-- [Mesos](https://docs.traefik.io/configuration/backends/mesos) / [Marathon](https://docs.traefik.io/configuration/backends/marathon)
-- [Rancher](https://docs.traefik.io/configuration/backends/rancher) (API, Metadata)
-- [Azure Service Fabric](https://docs.traefik.io/configuration/backends/servicefabric)
-- [Consul Catalog](https://docs.traefik.io/configuration/backends/consulcatalog)
-- [Consul](https://docs.traefik.io/configuration/backends/consul) / [Etcd](https://docs.traefik.io/configuration/backends/etcd) / [Zookeeper](https://docs.traefik.io/configuration/backends/zookeeper) / [BoltDB](https://docs.traefik.io/configuration/backends/boltdb)
-- [Eureka](https://docs.traefik.io/configuration/backends/eureka)
-- [Amazon ECS](https://docs.traefik.io/configuration/backends/ecs)
-- [Amazon DynamoDB](https://docs.traefik.io/configuration/backends/dynamodb)
-- [File](https://docs.traefik.io/configuration/backends/file)
-- [Rest](https://docs.traefik.io/configuration/backends/rest)
+- [Docker](https://docs.traefik.io/providers/docker/) / [Swarm mode](https://docs.traefik.io/providers/docker/)
+- [Kubernetes](https://docs.traefik.io/providers/kubernetes-crd/)
+- [Marathon](https://docs.traefik.io/providers/marathon/)
+- [Rancher](https://docs.traefik.io/providers/rancher/) (Metadata)
+- [File](https://docs.traefik.io/providers/file/)
 
 ## Quickstart
 
-To get your hands on Traefik, you can use the [5-Minute Quickstart](http://docs.traefik.io/#the-traefik-quickstart-using-docker) in our documentation (you will need Docker).
+To get your hands on Traefik, you can use the [5-Minute Quickstart](https://docs.traefik.io/getting-started/quick-start/) in our documentation (you will need Docker).
 
 ## Web UI
 
@@ -94,10 +87,11 @@ You can access the simple HTML frontend of Traefik.
 
 ## Documentation
 
-You can find the complete documentation at [https://docs.traefik.io](https://docs.traefik.io).
-A collection of contributions around Traefik can be found at [https://awesome.traefik.io](https://awesome.traefik.io).
+You can find the complete documentation of Traefik v2 at [https://docs.traefik.io](https://docs.traefik.io).
 
-:warning: If you're testing out v2, please ensure you are using the [v2 documentation](https://docs.traefik.io/v2.0/).
+If you are using Traefik v1, you can find the complete documentation at [https://docs.traefik.io/v1.7/](https://docs.traefik.io/v1.7/)
+
+A collection of contributions around Traefik can be found at [https://awesome.traefik.io](https://awesome.traefik.io).
 
 ## Support
 
@@ -128,17 +122,7 @@ git clone https://github.com/containous/traefik
 
 ## Introductory Videos
 
-:warning: Please be aware that these videos are for v1.X. The old configurations for Traefik v1.X are NOT compatible with Traefik v2. If you're testing out v2, please ensure you are using a [v2 configuration](https://docs.traefik.io/v2.0/).
-
-Here is a talk given by [Emile Vauge](https://github.com/emilevauge) at GopherCon 2017.
-You will learn Traefik basics in less than 10 minutes.
-
-[![Traefik GopherCon 2017](https://img.youtube.com/vi/RgudiksfL-k/0.jpg)](https://www.youtube.com/watch?v=RgudiksfL-k)
-
-Here is a talk given by [Ed Robinson](https://github.com/errm) at [ContainerCamp UK](https://container.camp) conference.
-You will learn fundamental Traefik features and see some demos with Kubernetes.
-
-[![Traefik ContainerCamp UK](https://img.youtube.com/vi/aFtpIShV60I/0.jpg)](https://www.youtube.com/watch?v=aFtpIShV60I)
+You can find high level and deep dive videos on [videos.containo.us](https://videos.containo.us)
 
 ## Maintainers
 

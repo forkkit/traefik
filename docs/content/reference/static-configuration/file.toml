@@ -96,7 +96,7 @@
     namespaces = ["foobar", "foobar"]
     labelSelector = "foobar"
     ingressClass = "foobar"
-    throttleDuration = "10s"
+    throttleDuration = 42
   [providers.rest]
     insecure = true
   [providers.rancher]
@@ -108,6 +108,74 @@
     refreshSeconds = 42
     intervalPoll = true
     prefix = "foobar"
+  [providers.consulCatalog]
+    constraints = "foobar"
+    prefix = "foobar"
+    refreshInterval = 42
+    requireConsistent = true
+    stale = true
+    cache = true
+    exposedByDefault = true
+    defaultRule = "foobar"
+    [providers.consulCatalog.endpoint]
+      address = "foobar"
+      scheme = "foobar"
+      datacenter = "foobar"
+      token = "foobar"
+      endpointWaitTime = 42
+      [providers.consulCatalog.endpoint.tls]
+        ca = "foobar"
+        caOptional = true
+        cert = "foobar"
+        key = "foobar"
+        insecureSkipVerify = true
+      [providers.consulCatalog.endpoint.httpAuth]
+        username = "foobar"
+        password = "foobar"
+  [providers.consul]
+	rootKey = "traefik"
+    endpoints = ["foobar", "foobar"]
+	username = "foobar"
+	password = "foobar"
+    [providers.consul.tls]
+      ca = "foobar"
+      caOptional = true
+      cert = "foobar"
+      key = "foobar"
+      insecureSkipVerify = true
+  [providers.etcd]
+	rootKey = "traefik"
+    endpoints = ["foobar", "foobar"]
+	username = "foobar"
+	password = "foobar"
+    [providers.etcd.tls]
+      ca = "foobar"
+      caOptional = true
+      cert = "foobar"
+      key = "foobar"
+      insecureSkipVerify = true
+  [providers.zooKeeper]
+	rootKey = "traefik"
+    endpoints = ["foobar", "foobar"]
+	username = "foobar"
+	password = "foobar"
+    [providers.zooKeeper.tls]
+      ca = "foobar"
+      caOptional = true
+      cert = "foobar"
+      key = "foobar"
+      insecureSkipVerify = true
+  [providers.redis]
+	rootKey = "traefik"
+    endpoints = ["foobar", "foobar"]
+	username = "foobar"
+	password = "foobar"
+    [providers.redis.tls]
+      ca = "foobar"
+      caOptional = true
+      cert = "foobar"
+      key = "foobar"
+      insecureSkipVerify = true
 
 [api]
   insecure = true
@@ -120,20 +188,22 @@
     addEntryPointsLabels = true
     addServicesLabels = true
     entryPoint = "foobar"
+    manualRouting = true
   [metrics.datadog]
     address = "foobar"
-    pushInterval = "10s"
+    pushInterval = "42s"
     addEntryPointsLabels = true
     addServicesLabels = true
   [metrics.statsD]
     address = "foobar"
-    pushInterval = "10s"
+    pushInterval = "42s"
     addEntryPointsLabels = true
     addServicesLabels = true
+    prefix = "foobar"
   [metrics.influxDB]
     address = "foobar"
     protocol = "foobar"
-    pushInterval = "10s"
+    pushInterval = "42s"
     database = "foobar"
     retentionPolicy = "foobar"
     username = "foobar"
@@ -143,6 +213,7 @@
 
 [ping]
   entryPoint = "foobar"
+  manualRouting = true
 
 [log]
   level = "foobar"
@@ -209,6 +280,10 @@
     parentIDHeaderName = "foobar"
     spanIDHeaderName = "foobar"
     baggagePrefixHeaderName = "foobar"
+  [tracing.elastic]
+    serverURL = "foobar"
+    secretToken = "foobar"
+    serviceEnvironment = "foobar"
 
 [hostResolver]
   cnameFlattening = true

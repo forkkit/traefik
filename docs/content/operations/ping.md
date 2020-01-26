@@ -29,6 +29,9 @@ You can customize the `entryPoint` where the `/ping` is active with the `entryPo
 |---------|---------------|-----------------------------------------------------------------------------------------------------|
 | `/ping` | `GET`, `HEAD` | A simple endpoint to check for Traefik process liveness. Return a code `200` with the content: `OK` |
 
+!!! note
+    The `cli` comes with a [`healthcheck`](./cli.md#healthcheck) command which can be used for calling this endpoint.
+
 ### `entryPoint`
 
 Enabling /ping on a dedicated EntryPoint.
@@ -52,6 +55,26 @@ ping:
 ```
 
 ```bash tab="CLI"
---entryPoints.ping.address=":8082"
---ping.entryPoint="ping"
+--entryPoints.ping.address=:8082
+--ping.entryPoint=ping
+```
+
+### `manualRouting`
+
+_Optional, Default=false_
+
+If `manualRouting` is `true`, it disables the default internal router in order to allow one to create a custom router for the `ping@internal` service.
+
+```toml tab="File (TOML)"
+[ping]
+  manualRouting = true
+```
+
+```yaml tab="File (YAML)"
+ping:
+  manualRouting: true
+```
+
+```bash tab="CLI"
+--ping.manualrouting=true
 ```

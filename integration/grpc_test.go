@@ -90,7 +90,6 @@ func getHelloClientGRPC() (helloworld.GreeterClient, func() error, error) {
 		return nil, func() error { return nil }, err
 	}
 	return helloworld.NewGreeterClient(conn), conn.Close, nil
-
 }
 
 func getHelloClientGRPCh2c() (helloworld.GreeterClient, func() error, error) {
@@ -99,7 +98,6 @@ func getHelloClientGRPCh2c() (helloworld.GreeterClient, func() error, error) {
 		return nil, func() error { return nil }, err
 	}
 	return helloworld.NewGreeterClient(conn), conn.Close, nil
-
 }
 
 func callHelloClientGRPC(name string, secure bool) (string, error) {
@@ -351,7 +349,7 @@ func (s *GRPCSuite) TestGRPCBuffer(c *check.C) {
 		received <- true
 	}()
 
-	err = try.Do(time.Second*10, func() error {
+	err = try.Do(10*time.Second, func() error {
 		select {
 		case <-received:
 			return nil

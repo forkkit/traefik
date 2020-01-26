@@ -1,7 +1,7 @@
 /*
 The MIT License (MIT)
 
-Copyright (c) 2016-2019 Containous SAS
+Copyright (c) 2016-2020 Containous SAS
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -57,3 +57,11 @@ type TLSOptionListerExpansion interface{}
 // TLSOptionNamespaceListerExpansion allows custom methods to be added to
 // TLSOptionNamespaceLister.
 type TLSOptionNamespaceListerExpansion interface{}
+
+// TraefikServiceListerExpansion allows custom methods to be added to
+// TraefikServiceLister.
+type TraefikServiceListerExpansion interface{}
+
+// TraefikServiceNamespaceListerExpansion allows custom methods to be added to
+// TraefikServiceNamespaceLister.
+type TraefikServiceNamespaceListerExpansion interface{}

@@ -269,7 +269,6 @@ func TestPrometheus(t *testing.T) {
 			}
 			test.assert(family)
 		})
-
 	}
 }
 
@@ -282,20 +281,24 @@ func TestPrometheusMetricRemoval(t *testing.T) {
 	prometheusRegistry := RegisterPrometheus(context.Background(), &types.Prometheus{AddEntryPointsLabels: true, AddServicesLabels: true})
 	defer promRegistry.Unregister(promState)
 
-	configurations := make(dynamic.Configurations)
-	configurations["providerName"] = &dynamic.Configuration{
+	conf := dynamic.Configuration{
 		HTTP: th.BuildConfiguration(
 			th.WithRouters(
-				th.WithRouter("foo",
+				th.WithRouter("foo@providerName",
 					th.WithServiceName("bar")),
 			),
-			th.WithLoadBalancerServices(th.WithService("bar",
+			th.WithLoadBalancerServices(th.WithService("bar@providerName",
 				th.WithServers(th.WithServer("http://localhost:9000"))),
 			),
+			func(cfg *dynamic.HTTPConfiguration) {
+				cfg.Services["fii"] = &dynamic.Service{
+					Weighted: &dynamic.WeightedRoundRobin{},
+				}
+			},
 		),
 	}
 
-	OnConfigurationUpdate(configurations, []string{"entrypoint1"})
+	OnConfigurationUpdate(conf, []string{"entrypoint1"})
 
 	// Register some metrics manually that are not part of the active configuration.
 	// Those metrics should be part of the /metrics output on the first scrape but

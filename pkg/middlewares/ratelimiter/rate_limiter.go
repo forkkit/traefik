@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/containous/traefik/v2/pkg/config/dynamic"
@@ -30,13 +29,12 @@ type rateLimiter struct {
 	rate  rate.Limit // reqs/s
 	burst int64
 	// maxDelay is the maximum duration we're willing to wait for a bucket reservation to become effective, in nanoseconds.
-	// For now it is somewhat arbitrarily set to 1/rate.
+	// For now it is somewhat arbitrarily set to 1/(2*rate).
 	maxDelay      time.Duration
 	sourceMatcher utils.SourceExtractor
 	next          http.Handler
 
-	bucketsMu sync.Mutex
-	buckets   *ttlmap.TtlMap // actual buckets, keyed by source.
+	buckets *ttlmap.TtlMap // actual buckets, keyed by source.
 }
 
 // New returns a rate limiter middleware.
@@ -57,26 +55,40 @@ func New(ctx context.Context, next http.Handler, config dynamic.RateLimit, name 
 		return nil, err
 	}
 
-	buckets, err := ttlmap.NewMap(maxSources)
+	buckets, err := ttlmap.NewConcurrent(maxSources)
 	if err != nil {
 		return nil, err
 	}
 
 	burst := config.Burst
-	if burst <= 0 {
+	if burst < 1 {
 		burst = 1
 	}
 
-	// Logically, we should set maxDelay to ~infinity when config.Average == 0 (because it means to rate limiting),
+	period := time.Duration(config.Period)
+	if period == 0 {
+		period = time.Second
+	}
+
+	// Logically, we should set maxDelay to infinity when config.Average == 0 (because it means no rate limiting),
 	// but since the reservation will give us a delay = 0 anyway in this case, we're good even with any maxDelay >= 0.
 	var maxDelay time.Duration
-	if config.Average != 0 {
-		maxDelay = time.Second / time.Duration(config.Average*2)
+	var rtl float64
+	if config.Average > 0 {
+		rtl = float64(config.Average*int64(time.Second)) / float64(period)
+		// maxDelay does not scale well for rates below 1,
+		// so we just cap it to the corresponding value, i.e. 0.5s, in order to keep the effective rate predictable.
+		// One alternative would be to switch to a no-reservation mode (Allow() method) whenever we are in such a low rate regime.
+		if rtl < 1 {
+			maxDelay = 500 * time.Millisecond
+		} else {
+			maxDelay = time.Second / (time.Duration(rtl) * 2)
+		}
 	}
 
 	return &rateLimiter{
 		name:          name,
-		rate:          rate.Limit(config.Average),
+		rate:          rate.Limit(rtl),
 		burst:         burst,
 		maxDelay:      maxDelay,
 		next:          next,
@@ -103,9 +115,6 @@ func (rl *rateLimiter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if amount != 1 {
 		logger.Infof("ignoring token bucket amount > 1: %d", amount)
 	}
-
-	rl.bucketsMu.Lock()
-	defer rl.bucketsMu.Unlock()
 
 	var bucket *rate.Limiter
 	if rlSource, exists := rl.buckets.Get(source); exists {

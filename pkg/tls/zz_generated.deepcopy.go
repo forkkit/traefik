@@ -3,7 +3,7 @@
 /*
 The MIT License (MIT)
 
-Copyright (c) 2016-2019 Containous SAS
+Copyright (c) 2016-2020 Containous SAS
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -76,6 +76,11 @@ func (in *Options) DeepCopyInto(out *Options) {
 	*out = *in
 	if in.CipherSuites != nil {
 		in, out := &in.CipherSuites, &out.CipherSuites
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.CurvePreferences != nil {
+		in, out := &in.CurvePreferences, &out.CurvePreferences
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}

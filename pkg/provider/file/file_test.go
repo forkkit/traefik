@@ -139,7 +139,7 @@ func TestProvideWithWatch(t *testing.T) {
 				}
 			}
 
-			timeout = time.After(time.Second * 1)
+			timeout = time.After(1 * time.Second)
 			var numUpdates, numServices, numRouters, numTLSConfs int
 			for {
 				select {
@@ -250,7 +250,6 @@ func createProvider(t *testing.T, test ProvideTestCase, watch bool) (*Provider, 
 	}
 
 	if len(test.filePath) > 0 {
-
 		var file *os.File
 		if watch {
 			var err error

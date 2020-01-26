@@ -193,7 +193,6 @@ func (s *SimpleSuite) TestStatsWithMultipleEntryPoint(c *check.C) {
 
 	err = try.GetRequest("http://127.0.0.1:8080/health", 1*time.Second, try.BodyContains(`"total_status_code_count":{"200":2}`))
 	c.Assert(err, checker.IsNil)
-
 }
 
 func (s *SimpleSuite) TestNoAuthOnPing(c *check.C) {
@@ -301,7 +300,6 @@ func (s *SimpleSuite) TestMultipleProviderSameBackendName(c *check.C) {
 
 	err = try.GetRequest("http://127.0.0.1:8000/file", 1*time.Second, try.BodyContains(ipWhoami02))
 	c.Assert(err, checker.IsNil)
-
 }
 
 func (s *SimpleSuite) TestIPStrategyWhitelist(c *check.C) {
@@ -449,7 +447,6 @@ func (s *SimpleSuite) TestMultiProvider(c *check.C) {
 
 	err = try.GetRequest("http://127.0.0.1:8000/", 1*time.Second, try.StatusCodeIs(http.StatusOK), try.BodyContains("CustomValue"))
 	c.Assert(err, checker.IsNil)
-
 }
 
 func (s *SimpleSuite) TestSimpleConfigurationHostRequestTrailingPeriod(c *check.C) {
@@ -625,8 +622,8 @@ func (s *SimpleSuite) TestWRRSticky(c *check.C) {
 	repartition := map[string]int{}
 	req, err := http.NewRequest(http.MethodGet, "http://127.0.0.1:8000/whoami", nil)
 	c.Assert(err, checker.IsNil)
-	for i := 0; i < 4; i++ {
 
+	for i := 0; i < 4; i++ {
 		response, err := http.DefaultClient.Do(req)
 		c.Assert(err, checker.IsNil)
 		c.Assert(response.StatusCode, checker.Equals, http.StatusOK)
@@ -708,7 +705,7 @@ func (s *SimpleSuite) TestMirrorCanceled(c *check.C) {
 
 	main := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		atomic.AddInt32(&count, 1)
-		time.Sleep(time.Second * 2)
+		time.Sleep(2 * time.Second)
 	}))
 
 	mirror1 := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
@@ -780,5 +777,100 @@ func (s *SimpleSuite) TestSecureAPI(c *check.C) {
 	c.Assert(err, checker.IsNil)
 
 	err = try.GetRequest("http://127.0.0.1:8080/api/rawdata", 1*time.Second, try.StatusCodeIs(http.StatusNotFound))
+	c.Assert(err, checker.IsNil)
+}
+
+func (s *SimpleSuite) TestContentTypeDisableAutoDetect(c *check.C) {
+	srv1 := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.Header()["Content-Type"] = nil
+		switch req.URL.Path[:4] {
+		case "/css":
+			if !strings.Contains(req.URL.Path, "noct") {
+				rw.Header().Set("Content-Type", "text/css")
+			}
+
+			rw.WriteHeader(http.StatusOK)
+
+			_, err := rw.Write([]byte(".testcss { }"))
+			c.Assert(err, checker.IsNil)
+		case "/pdf":
+			if !strings.Contains(req.URL.Path, "noct") {
+				rw.Header().Set("Content-Type", "application/pdf")
+			}
+
+			rw.WriteHeader(http.StatusOK)
+
+			bytes, err := ioutil.ReadFile("fixtures/test.pdf")
+			c.Assert(err, checker.IsNil)
+
+			_, err = rw.Write(bytes)
+			c.Assert(err, checker.IsNil)
+		}
+	}))
+
+	defer srv1.Close()
+
+	file := s.adaptFile(c, "fixtures/simple_contenttype.toml", struct {
+		Server string
+	}{
+		Server: srv1.URL,
+	})
+	defer os.Remove(file)
+
+	cmd, display := s.traefikCmd(withConfigFile(file), "--log.level=DEBUG")
+	defer display(c)
+
+	err := cmd.Start()
+	c.Assert(err, check.IsNil)
+	defer cmd.Process.Kill()
+
+	// wait for traefik
+	err = try.GetRequest("http://127.0.0.1:8080/api/rawdata", 10*time.Second, try.BodyContains("127.0.0.1"))
+	c.Assert(err, checker.IsNil)
+
+	err = try.GetRequest("http://127.0.0.1:8000/css/ct/nomiddleware", time.Second, try.HasHeaderValue("Content-Type", "text/css", false))
+	c.Assert(err, checker.IsNil)
+
+	err = try.GetRequest("http://127.0.0.1:8000/pdf/ct/nomiddleware", time.Second, try.HasHeaderValue("Content-Type", "application/pdf", false))
+	c.Assert(err, checker.IsNil)
+
+	err = try.GetRequest("http://127.0.0.1:8000/css/ct/middlewareauto", time.Second, try.HasHeaderValue("Content-Type", "text/css", false))
+	c.Assert(err, checker.IsNil)
+
+	err = try.GetRequest("http://127.0.0.1:8000/pdf/ct/nomiddlewareauto", time.Second, try.HasHeaderValue("Content-Type", "application/pdf", false))
+	c.Assert(err, checker.IsNil)
+
+	err = try.GetRequest("http://127.0.0.1:8000/css/ct/middlewarenoauto", time.Second, try.HasHeaderValue("Content-Type", "text/css", false))
+	c.Assert(err, checker.IsNil)
+
+	err = try.GetRequest("http://127.0.0.1:8000/pdf/ct/nomiddlewarenoauto", time.Second, try.HasHeaderValue("Content-Type", "application/pdf", false))
+	c.Assert(err, checker.IsNil)
+
+	err = try.GetRequest("http://127.0.0.1:8000/css/noct/nomiddleware", time.Second, try.HasHeaderValue("Content-Type", "text/plain; charset=utf-8", false))
+	c.Assert(err, checker.IsNil)
+
+	err = try.GetRequest("http://127.0.0.1:8000/pdf/noct/nomiddleware", time.Second, try.HasHeaderValue("Content-Type", "application/pdf", false))
+	c.Assert(err, checker.IsNil)
+
+	err = try.GetRequest("http://127.0.0.1:8000/css/noct/middlewareauto", time.Second, try.HasHeaderValue("Content-Type", "text/plain; charset=utf-8", false))
+	c.Assert(err, checker.IsNil)
+
+	err = try.GetRequest("http://127.0.0.1:8000/pdf/noct/nomiddlewareauto", time.Second, try.HasHeaderValue("Content-Type", "application/pdf", false))
+	c.Assert(err, checker.IsNil)
+
+	err = try.GetRequest("http://127.0.0.1:8000/css/noct/middlewarenoauto", time.Second, func(res *http.Response) error {
+		if ct, ok := res.Header["Content-Type"]; ok {
+			return fmt.Errorf("should have no content type and %s is present", ct)
+		}
+		return nil
+	})
+	c.Assert(err, checker.IsNil)
+
+	err = try.GetRequest("http://127.0.0.1:8000/pdf/noct/middlewarenoauto", time.Second, func(res *http.Response) error {
+		if ct, ok := res.Header["Content-Type"]; ok {
+			return fmt.Errorf("should have no content type and %s is present", ct)
+		}
+		return nil
+	})
 	c.Assert(err, checker.IsNil)
 }

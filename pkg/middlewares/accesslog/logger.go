@@ -3,6 +3,7 @@ package accesslog
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -31,17 +32,28 @@ const (
 	JSONFormat string = "json"
 )
 
+type noopCloser struct {
+	*os.File
+}
+
+func (n noopCloser) Write(p []byte) (int, error) {
+	return n.File.Write(p)
+}
+
+func (n noopCloser) Close() error {
+	// noop
+	return nil
+}
+
 type handlerParams struct {
 	logDataTable *LogData
-	crr          *captureRequestReader
-	crw          *captureResponseWriter
 }
 
 // Handler will write each request and its response to the access log.
 type Handler struct {
 	config         *types.AccessLog
 	logger         *logrus.Logger
-	file           *os.File
+	file           io.WriteCloser
 	mu             sync.Mutex
 	httpCodeRanges types.HTTPCodeRanges
 	logHandlerChan chan handlerParams
@@ -59,7 +71,7 @@ func WrapHandler(handler *Handler) alice.Constructor {
 
 // NewHandler creates a new Handler.
 func NewHandler(config *types.AccessLog) (*Handler, error) {
-	file := os.Stdout
+	var file io.WriteCloser = noopCloser{os.Stdout}
 	if len(config.FilePath) > 0 {
 		f, err := openAccessLogFile(config.FilePath)
 		if err != nil {
@@ -108,7 +120,7 @@ func NewHandler(config *types.AccessLog) (*Handler, error) {
 		go func() {
 			defer logHandler.wg.Done()
 			for handlerParams := range logHandler.logHandlerChan {
-				logHandler.logTheRoundTrip(handlerParams.logDataTable, handlerParams.crr, handlerParams.crw)
+				logHandler.logTheRoundTrip(handlerParams.logDataTable)
 			}
 		}()
 	}
@@ -148,7 +160,12 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request, next http
 		StartLocal: now.Local(),
 	}
 
-	logDataTable := &LogData{Core: core, Request: req.Header}
+	logDataTable := &LogData{
+		Core: core,
+		Request: request{
+			headers: req.Header,
+		},
+	}
 
 	reqWithDataTable := req.WithContext(context.WithValue(req.Context(), DataTableKey, logDataTable))
 
@@ -183,7 +200,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request, next http
 		core[ClientHost] = forwardedFor
 	}
 
-	crw := &captureResponseWriter{rw: rw}
+	crw := newCaptureResponseWriter(rw)
 
 	next.ServeHTTP(crw, reqWithDataTable)
 
@@ -191,16 +208,21 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request, next http
 		core[ClientUsername] = usernameIfPresent(reqWithDataTable.URL)
 	}
 
-	logDataTable.DownstreamResponse = crw.Header()
+	logDataTable.DownstreamResponse = downstreamResponse{
+		headers: crw.Header().Clone(),
+		status:  crw.Status(),
+		size:    crw.Size(),
+	}
+	if crr != nil {
+		logDataTable.Request.size = crr.count
+	}
 
 	if h.config.BufferingSize > 0 {
 		h.logHandlerChan <- handlerParams{
 			logDataTable: logDataTable,
-			crr:          crr,
-			crw:          crw,
 		}
 	} else {
-		h.logTheRoundTrip(logDataTable, crr, crw)
+		h.logTheRoundTrip(logDataTable)
 	}
 }
 
@@ -213,14 +235,15 @@ func (h *Handler) Close() error {
 
 // Rotate closes and reopens the log file to allow for rotation by an external source.
 func (h *Handler) Rotate() error {
-	var err error
-
-	if h.file != nil {
-		defer func(f *os.File) {
-			f.Close()
-		}(h.file)
+	if h.config.FilePath == "" {
+		return nil
 	}
 
+	if h.file != nil {
+		defer func(f io.Closer) { _ = f.Close() }(h.file)
+	}
+
+	var err error
 	h.file, err = os.OpenFile(h.config.FilePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0664)
 	if err != nil {
 		return err
@@ -249,7 +272,7 @@ func usernameIfPresent(theURL *url.URL) string {
 }
 
 // Logging handler to log frontend name, backend name, and elapsed time.
-func (h *Handler) logTheRoundTrip(logDataTable *LogData, crr *captureRequestReader, crw *captureResponseWriter) {
+func (h *Handler) logTheRoundTrip(logDataTable *LogData) {
 	core := logDataTable.Core
 
 	retryAttempts, ok := core[RetryAttempts].(int)
@@ -257,23 +280,22 @@ func (h *Handler) logTheRoundTrip(logDataTable *LogData, crr *captureRequestRead
 		retryAttempts = 0
 	}
 	core[RetryAttempts] = retryAttempts
+	core[RequestContentSize] = logDataTable.Request.size
 
-	if crr != nil {
-		core[RequestContentSize] = crr.count
-	}
-
-	core[DownstreamStatus] = crw.Status()
+	status := logDataTable.DownstreamResponse.status
+	core[DownstreamStatus] = status
 
 	// n.b. take care to perform time arithmetic using UTC to avoid errors at DST boundaries.
 	totalDuration := time.Now().UTC().Sub(core[StartUTC].(time.Time))
 	core[Duration] = totalDuration
 
-	if h.keepAccessLog(crw.Status(), retryAttempts, totalDuration) {
-		core[DownstreamContentSize] = crw.Size()
+	if h.keepAccessLog(status, retryAttempts, totalDuration) {
+		size := logDataTable.DownstreamResponse.size
+		core[DownstreamContentSize] = size
 		if original, ok := core[OriginContentSize]; ok {
 			o64 := original.(int64)
-			if crw.Size() != o64 && crw.Size() != 0 {
-				core[GzipRatio] = float64(o64) / float64(crw.Size())
+			if size != o64 && size != 0 {
+				core[GzipRatio] = float64(o64) / float64(size)
 			}
 		}
 
@@ -290,9 +312,9 @@ func (h *Handler) logTheRoundTrip(logDataTable *LogData, crr *captureRequestRead
 			}
 		}
 
-		h.redactHeaders(logDataTable.Request, fields, "request_")
+		h.redactHeaders(logDataTable.Request.headers, fields, "request_")
 		h.redactHeaders(logDataTable.OriginResponse, fields, "origin_")
-		h.redactHeaders(logDataTable.DownstreamResponse, fields, "downstream_")
+		h.redactHeaders(logDataTable.DownstreamResponse.headers, fields, "downstream_")
 
 		h.mu.Lock()
 		defer h.mu.Unlock()

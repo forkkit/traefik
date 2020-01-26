@@ -1,7 +1,7 @@
 /*
 The MIT License (MIT)
 
-Copyright (c) 2016-2019 Containous SAS
+Copyright (c) 2016-2020 Containous SAS
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -40,6 +40,8 @@ type Interface interface {
 	Middlewares() MiddlewareInformer
 	// TLSOptions returns a TLSOptionInformer.
 	TLSOptions() TLSOptionInformer
+	// TraefikServices returns a TraefikServiceInformer.
+	TraefikServices() TraefikServiceInformer
 }
 
 type version struct {
@@ -71,4 +73,9 @@ func (v *version) Middlewares() MiddlewareInformer {
 // TLSOptions returns a TLSOptionInformer.
 func (v *version) TLSOptions() TLSOptionInformer {
 	return &tLSOptionInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// TraefikServices returns a TraefikServiceInformer.
+func (v *version) TraefikServices() TraefikServiceInformer {
+	return &traefikServiceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

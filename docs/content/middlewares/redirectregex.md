@@ -15,8 +15,8 @@ RegexRedirect redirect a request from an url to another with regex matching and 
 # Redirect with domain replacement
 # Note: all dollar signs need to be doubled for escaping.
 labels:
-- "traefik.http.middlewares.test-redirectregex.redirectregex.regex=^http://localhost/(.*)"
-- "traefik.http.middlewares.test-redirectregex.redirectregex.replacement=http://mydomain/$${1}"
+  - "traefik.http.middlewares.test-redirectregex.redirectregex.regex=^http://localhost/(.*)"
+  - "traefik.http.middlewares.test-redirectregex.redirectregex.replacement=http://mydomain/$${1}"
 ```
 
 ```yaml tab="Kubernetes"
@@ -31,6 +31,13 @@ spec:
     replacement: http://mydomain/${1}
 ```
 
+```yaml tab="Consul Catalog"
+# Redirect with domain replacement
+# Note: all dollar signs need to be doubled for escaping.
+- "traefik.http.middlewares.test-redirectregex.redirectregex.regex=^http://localhost/(.*)"
+- "traefik.http.middlewares.test-redirectregex.redirectregex.replacement=http://mydomain/$${1}"
+```
+
 ```json tab="Marathon"
 "labels": {
   "traefik.http.middlewares.test-redirectregex.redirectregex.regex": "^http://localhost/(.*)",
@@ -42,8 +49,8 @@ spec:
 # Redirect with domain replacement
 # Note: all dollar signs need to be doubled for escaping.
 labels:
-- "traefik.http.middlewares.test-redirectregex.redirectregex.regex=^http://localhost/(.*)"
-- "traefik.http.middlewares.test-redirectregex.redirectregex.replacement=http://mydomain/$${1}"
+  - "traefik.http.middlewares.test-redirectregex.redirectregex.regex=^http://localhost/(.*)"
+  - "traefik.http.middlewares.test-redirectregex.redirectregex.replacement=http://mydomain/$${1}"
 ```
 
 ```toml tab="File (TOML)"
@@ -85,4 +92,3 @@ The `regex` option is the regular expression to match and capture elements from 
 ### `replacement`
 
 The `replacement` option defines how to modify the URL to have the new target URL.
- 

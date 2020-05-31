@@ -65,6 +65,8 @@ spec:
     kind: TraefikService
     mirrors:
       - name: s2
+        # Optional
+        maxBodySize: 2000000000
         # Optional, as it is the default value
         kind: Service
         percent: 20
@@ -78,9 +80,9 @@ metadata:
 spec:
   entryPoints:
     - web
-    - web-secure
+    - websecure
   routes:
-    - match: Host(`foo.com`) && PathPrefix(`/bar`)
+    - match: Host(`example.net`) && PathPrefix(`/bar`)
       kind: Rule
       priority: 12
       # defining several services is possible and allowed, but for now the servers of
@@ -89,21 +91,11 @@ spec:
       services:
         - name: s1
           port: 80
-          healthCheck:
-            path: /health
-            host: baz.com
-            intervalSeconds: 7
-            timeoutSeconds: 60
           # strategy defines the load balancing strategy between the servers. It defaults
           # to Round Robin, and for now only Round Robin is supported anyway.
           strategy: RoundRobin
         - name: s2
           port: 433
-          healthCheck:
-            path: /health
-            host: baz.com
-            intervalSeconds: 7
-            timeoutSeconds: 60
     - match: PathPrefix(`/misc`)
       services:
         - name: s3
@@ -131,7 +123,7 @@ spec:
   tls:
     secretName: supersecret
     options:
-      name: myTLSOption
+      name: my-tls-option
       namespace: default
 
 ---
@@ -145,7 +137,7 @@ spec:
   entryPoints:
     - footcp
   routes:
-    - match: HostSNI(`bar.com`)
+    - match: HostSNI(`example.com`)
       services:
         - name: whoamitcp
           port: 8080
@@ -153,5 +145,44 @@ spec:
     secretName: foosecret
     passthrough: false
     options:
-      name: myTLSOption
+      name: my-tls-option
       namespace: default
+
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRouteUDP
+metadata:
+  name: ingressrouteudp.crd
+  namespace: default
+
+spec:
+  entryPoints:
+    - footcp
+  routes:
+    - services:
+        - name: whoamiudp
+          port: 8080
+
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: TLSOption
+metadata:
+  name: tlsoption
+  namespace: default
+
+spec:
+  minVersion: foobar
+  maxVersion: foobar
+  cipherSuites:
+    - foobar
+    - foobar
+  curvePreferences:
+    - foobar
+    - foobar
+  clientAuth:
+    caFiles:
+      - foobar
+      - foobar
+    clientAuthType: foobar
+  sniStrict: true
+  preferServerCipherSuites: true

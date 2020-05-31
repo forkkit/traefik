@@ -60,7 +60,7 @@ If you require LetsEncrypt with HA in a kubernetes environment, we recommend usi
 If you are wanting to continue to run Traefik Community Edition, LetsEncrypt HA can be achieved by using a Certificate Controller such as [Cert-Manager](https://docs.cert-manager.io/en/latest/index.html).
 When using Cert-Manager to manage certificates, it will create secrets in your namespaces that can be referenced as TLS secrets in your [ingress objects](https://kubernetes.io/docs/concepts/services-networking/ingress/#tls).
 When using the Traefik Kubernetes CRD Provider, unfortunately Cert-Manager cannot interface directly with the CRDs _yet_, but this is being worked on by our team.
-A workaround it to enable the [Kubernetes Ingress provider](./kubernetes-ingress.md) to allow Cert-Manager to create ingress objects to complete the challenges.
+A workaround is to enable the [Kubernetes Ingress provider](./kubernetes-ingress.md) to allow Cert-Manager to create ingress objects to complete the challenges.
 Please note that this still requires manual intervention to create the certificates through Cert-Manager, but once created, Cert-Manager will keep the certificate renewed.
 
 ## Provider Configuration
@@ -173,7 +173,7 @@ Array of namespaces to watch.
 
 ### `labelselector`
 
-_Optional,Default: empty (process all Ingresses)_
+_Optional,Default: empty (process all resources)_
 
 ```toml tab="File (TOML)"
 [providers.kubernetesCRD]
@@ -192,8 +192,8 @@ providers:
 --providers.kubernetescrd.labelselector="A and not B"
 ```
 
-By default, Traefik processes all Ingress objects in the configured namespaces.
-A label selector can be defined to filter on specific Ingress objects only.
+By default, Traefik processes all resource objects in the configured namespaces.
+A label selector can be defined to filter on specific resource objects only.
 
 See [label-selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors) for details.
 
@@ -218,10 +218,10 @@ providers:
 --providers.kubernetescrd.ingressclass=traefik-internal
 ```
 
-Value of `kubernetes.io/ingress.class` annotation that identifies Ingress objects to be processed.
+Value of `kubernetes.io/ingress.class` annotation that identifies resource objects to be processed.
 
-If the parameter is non-empty, only Ingresses containing an annotation with the same value are processed.
-Otherwise, Ingresses missing the annotation, having an empty value, or the value `traefik` are processed.
+If the parameter is non-empty, only resources containing an annotation with the same value are processed.
+Otherwise, resources missing the annotation, having an empty value, or the value `traefik` are processed.
 
 ### `throttleDuration`
 

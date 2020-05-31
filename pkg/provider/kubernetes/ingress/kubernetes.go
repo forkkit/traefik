@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cenkalti/backoff/v3"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/containous/traefik/v2/pkg/config/dynamic"
 	"github.com/containous/traefik/v2/pkg/job"
 	"github.com/containous/traefik/v2/pkg/log"
@@ -46,7 +46,7 @@ type Provider struct {
 	lastConfiguration      safe.Safe
 }
 
-// EndpointIngress holds the endpoint information for the Kubernetes provider
+// EndpointIngress holds the endpoint information for the Kubernetes provider.
 type EndpointIngress struct {
 	IP               string `description:"IP used for Kubernetes Ingress endpoints." json:"ip,omitempty" toml:"ip,omitempty" yaml:"ip,omitempty"`
 	Hostname         string `description:"Hostname used for Kubernetes Ingress endpoints." json:"hostname,omitempty" toml:"hostname,omitempty" yaml:"hostname,omitempty"`
@@ -105,32 +105,29 @@ func (p *Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.
 		return err
 	}
 
-	pool.Go(func(stop chan bool) {
+	pool.GoCtx(func(ctxPool context.Context) {
 		operation := func() error {
-			stopWatch := make(chan struct{}, 1)
-			defer close(stopWatch)
-
-			eventsChan, err := k8sClient.WatchAll(p.Namespaces, stopWatch)
+			eventsChan, err := k8sClient.WatchAll(p.Namespaces, ctxPool.Done())
 			if err != nil {
 				logger.Errorf("Error watching kubernetes events: %v", err)
 				timer := time.NewTimer(1 * time.Second)
 				select {
 				case <-timer.C:
 					return err
-				case <-stop:
+				case <-ctxPool.Done():
 					return nil
 				}
 			}
 
 			throttleDuration := time.Duration(p.ThrottleDuration)
-			throttledChan := throttleEvents(ctxLog, throttleDuration, stop, eventsChan)
+			throttledChan := throttleEvents(ctxLog, throttleDuration, pool, eventsChan)
 			if throttledChan != nil {
 				eventsChan = throttledChan
 			}
 
 			for {
 				select {
-				case <-stop:
+				case <-ctxPool.Done():
 					return nil
 				case event := <-eventsChan:
 					// Note that event is the *first* event that came in during this
@@ -165,7 +162,8 @@ func (p *Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.
 		notify := func(err error, time time.Duration) {
 			logger.Errorf("Provider connection error: %s; retrying in %s", err, time)
 		}
-		err := backoff.RetryNotify(safe.OperationWithRecover(operation), job.NewBackOff(backoff.NewExponentialBackOff()), notify)
+
+		err := backoff.RetryNotify(safe.OperationWithRecover(operation), backoff.WithContext(job.NewBackOff(backoff.NewExponentialBackOff()), ctxPool), notify)
 		if err != nil {
 			logger.Errorf("Cannot connect to Provider: %s", err)
 		}
@@ -268,8 +266,9 @@ func (p *Provider) loadConfigurationFromIngresses(ctx context.Context, client Cl
 				serviceName := provider.Normalize(ingress.Namespace + "-" + pa.Backend.ServiceName + "-" + pa.Backend.ServicePort.String())
 				conf.HTTP.Services[serviceName] = service
 
-				routerKey := strings.TrimPrefix(provider.Normalize(rule.Host+pa.Path), "-")
-				conf.HTTP.Routers[routerKey] = loadRouter(ingress, rule, pa, rtConfig, serviceName)
+				routerKey := strings.TrimPrefix(provider.Normalize(ingress.Name+"-"+ingress.Namespace+"-"+rule.Host+pa.Path), "-")
+
+				conf.HTTP.Routers[routerKey] = loadRouter(rule, pa, rtConfig, serviceName)
 			}
 		}
 	}
@@ -307,7 +306,7 @@ func (p *Provider) updateIngressStatus(ing *v1beta1.Ingress, k8sClient Client) e
 
 	service, exists, err := k8sClient.GetService(serviceNamespace, serviceName)
 	if err != nil {
-		return fmt.Errorf("cannot get service %s, received error: %s", p.IngressEndpoint.PublishedService, err)
+		return fmt.Errorf("cannot get service %s, received error: %w", p.IngressEndpoint.PublishedService, err)
 	}
 
 	if exists && service.Status.LoadBalancer.Ingress == nil {
@@ -321,6 +320,14 @@ func (p *Provider) updateIngressStatus(ing *v1beta1.Ingress, k8sClient Client) e
 	}
 
 	return k8sClient.UpdateIngressStatus(ing, service.Status.LoadBalancer.Ingress[0].IP, service.Status.LoadBalancer.Ingress[0].Hostname)
+}
+
+func buildHostRule(host string) string {
+	if strings.HasPrefix(host, "*.") {
+		return "HostRegexp(`" + strings.Replace(host, "*.", "{subdomain:[a-zA-Z0-9-]+}.", 1) + "`)"
+	}
+
+	return "Host(`" + host + "`)"
 }
 
 func shouldProcessIngress(ingressClass string, ingressClassAnnotation string) bool {
@@ -339,7 +346,7 @@ func getCertificates(ctx context.Context, ingress *v1beta1.Ingress, k8sClient Cl
 		if _, tlsExists := tlsConfigs[configKey]; !tlsExists {
 			secret, exists, err := k8sClient.GetSecret(ingress.Namespace, t.SecretName)
 			if err != nil {
-				return fmt.Errorf("failed to fetch secret %s/%s: %v", ingress.Namespace, t.SecretName, err)
+				return fmt.Errorf("failed to fetch secret %s/%s: %w", ingress.Namespace, t.SecretName, err)
 			}
 			if !exists {
 				return fmt.Errorf("secret %s/%s does not exist", ingress.Namespace, t.SecretName)
@@ -519,10 +526,10 @@ func getProtocol(portSpec corev1.ServicePort, portName string, svcConfig *Servic
 	return protocol
 }
 
-func loadRouter(ingress *v1beta1.Ingress, rule v1beta1.IngressRule, pa v1beta1.HTTPIngressPath, rtConfig *RouterConfig, serviceName string) *dynamic.Router {
+func loadRouter(rule v1beta1.IngressRule, pa v1beta1.HTTPIngressPath, rtConfig *RouterConfig, serviceName string) *dynamic.Router {
 	var rules []string
 	if len(rule.Host) > 0 {
-		rules = []string{"Host(`" + rule.Host + "`)"}
+		rules = []string{buildHostRule(rule.Host)}
 	}
 
 	if len(pa.Path) > 0 {
@@ -537,11 +544,6 @@ func loadRouter(ingress *v1beta1.Ingress, rule v1beta1.IngressRule, pa v1beta1.H
 	rt := &dynamic.Router{
 		Rule:    strings.Join(rules, " && "),
 		Service: serviceName,
-	}
-
-	if len(ingress.Spec.TLS) > 0 {
-		// TLS enabled for this ingress, add TLS router
-		rt.TLS = &dynamic.RouterTLSConfig{}
 	}
 
 	if rtConfig != nil && rtConfig.Router != nil {
@@ -562,7 +564,7 @@ func checkStringQuoteValidity(value string) error {
 	return err
 }
 
-func throttleEvents(ctx context.Context, throttleDuration time.Duration, stop chan bool, eventsChan <-chan interface{}) chan interface{} {
+func throttleEvents(ctx context.Context, throttleDuration time.Duration, pool *safe.Pool, eventsChan <-chan interface{}) chan interface{} {
 	if throttleDuration == 0 {
 		return nil
 	}
@@ -573,10 +575,10 @@ func throttleEvents(ctx context.Context, throttleDuration time.Duration, stop ch
 	// non-blocking write to pendingEvent. This guarantees that writing to
 	// eventChan will never block, and that pendingEvent will have
 	// something in it if there's been an event since we read from that channel.
-	go func() {
+	pool.GoCtx(func(ctxPool context.Context) {
 		for {
 			select {
-			case <-stop:
+			case <-ctxPool.Done():
 				return
 			case nextEvent := <-eventsChan:
 				select {
@@ -590,7 +592,7 @@ func throttleEvents(ctx context.Context, throttleDuration time.Duration, stop ch
 				}
 			}
 		}
-	}()
+	})
 
 	return eventsChanBuffered
 }
